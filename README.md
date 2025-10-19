@@ -1,8 +1,8 @@
 # Расписание (Schedule)
 
-###### **Описание проекта**
+#### **Описание проекта**
 
-###### **Запуск backend-а**
+#### **Запуск backend-а**
 ```bash
 # Создание виртуального окружения
 python -m venv backend/venv
@@ -12,4 +12,4 @@ backend\venv\Scripts\activate
 pip install -r backend/requirements.txt
 ```
 
-###### **Запуск frontend-а**
+#### **Запуск frontend-а**
