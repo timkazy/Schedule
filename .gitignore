@@ -1,2 +1,2 @@
-backend/venv
-backend/*pycache*
+backend/venv/
+backend/*pycache*/
