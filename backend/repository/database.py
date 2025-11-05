@@ -101,6 +101,7 @@ class DatabaseCreator:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 subject_id INTEGER REFERENCES subjects(id) ON UPDATE CASCADE NOT NULL,
                 time_id INTEGER REFERENCES lesson_time(id) ON UPDATE CASCADE NOT NULL,
+                audience_number INTEGER REFERENCES audiences(number) ON UPDATE CASCADE NOT NULL,
                 date TIMESTAMP NOT NULL,
                 UNIQUE(subject_id, time_id, date)
             );""")
