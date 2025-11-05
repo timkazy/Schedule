@@ -19,6 +19,11 @@ session = sess_maker()
 
 Base = declarative_base()
 
+class Audience(Base):
+    __tablename__ = 'audiences'
+
+    number = Column(Integer, primary_key=True)
+
 class LessonTime(Base):
     __tablename__ = 'lesson_time'
 
@@ -33,6 +38,9 @@ class Lesson(Base):
 
     subject_id = Column(Integer, ForeignKey('subject.id'), nullable=False)
     subject = relationship('Subject', backref="subject")
+
+    audience_number = Column(Integer, ForeignKey('audiences.audience'), nullable=False)
+    audience = relationship('Audience', backref="audience")
 
     time_id = Column(Integer, ForeignKey('lesson_time.id'), nullable=False)
     time = relationship('LessonTime', lazy="joined", backref="time")
