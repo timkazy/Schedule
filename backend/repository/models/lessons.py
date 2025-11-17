@@ -24,6 +24,32 @@ class Audience(Base):
 
     number = Column(Integer, primary_key=True)
 
+    def create_audience(self, number: int):
+        try:
+            new_aud = Audience(
+                number=number
+            )
+            session.add(new_aud)
+            session.commit()
+            return new_aud
+        
+        except IntegrityError:
+            session.rollback()
+            existing = session.query(Audience).filter_by(number=number).first()
+            return existing
+
+    def delete_audience(self, number: int) -> bool:
+        try:
+            audience = session.query(Audience).filter(Audience.number == number).first()
+            session.delete(audience)
+            session.commit()
+
+            return True if audience else False
+            
+        except Exception as e:
+            print(f"Error: cannot delete an audience - {e}")
+            return False
+
 class LessonTime(Base):
     __tablename__ = 'lesson_time'
 
