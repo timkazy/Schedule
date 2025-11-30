@@ -19,6 +19,17 @@ python backend/main.py
 ```
 
 #### **Запуск отдельно frontend-а**
+Для этого необходимо скачать node.js
+https://nodejs.org/en/download
+Версия 22.21.1 (LTS)
+После установки в директории проекта
+```bash
+cd .\frontend\
+# Установка зависимостей
+npm install
+# Запуск проекта
+npm run dev
+```
 
 #### **Working with Git**
 В случае необходимости слития наработок из своей ветки:
