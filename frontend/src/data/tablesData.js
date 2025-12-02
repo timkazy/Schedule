@@ -8,7 +8,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -17,7 +17,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -26,7 +26,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -35,7 +35,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -53,7 +53,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -62,7 +62,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -71,7 +71,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -80,7 +80,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -89,7 +89,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -98,7 +98,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -116,7 +116,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -125,7 +125,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -134,7 +134,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -143,7 +143,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     }
@@ -154,7 +154,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -163,7 +163,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -172,7 +172,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -181,7 +181,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -199,7 +199,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -208,7 +208,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -217,7 +217,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -226,7 +226,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -235,7 +235,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -244,7 +244,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -262,7 +262,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -271,7 +271,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -280,7 +280,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -289,7 +289,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     }
@@ -305,7 +305,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -314,7 +314,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -323,7 +323,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -332,7 +332,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -350,7 +350,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -359,7 +359,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -368,7 +368,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -377,7 +377,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -386,7 +386,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -395,7 +395,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -413,7 +413,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -422,7 +422,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -431,7 +431,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -440,7 +440,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     }
@@ -451,7 +451,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -460,7 +460,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -469,7 +469,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -478,7 +478,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -496,7 +496,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -505,7 +505,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -514,7 +514,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -523,7 +523,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -532,7 +532,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -541,7 +541,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -559,7 +559,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -568,7 +568,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -577,7 +577,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -586,7 +586,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     }
@@ -602,7 +602,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -611,7 +611,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -620,7 +620,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -629,7 +629,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -647,7 +647,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -656,7 +656,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -665,7 +665,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -674,7 +674,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -683,7 +683,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -692,7 +692,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -710,7 +710,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -719,7 +719,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -728,7 +728,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -737,7 +737,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     }
@@ -748,7 +748,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -757,7 +757,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -766,7 +766,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -775,7 +775,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -793,7 +793,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -802,7 +802,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -811,7 +811,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -820,7 +820,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -829,7 +829,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -838,7 +838,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -856,7 +856,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -865,7 +865,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -874,7 +874,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -883,7 +883,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     }
@@ -899,7 +899,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -908,7 +908,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -917,7 +917,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -926,7 +926,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -944,7 +944,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -953,7 +953,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -962,7 +962,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -971,7 +971,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -980,7 +980,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -989,7 +989,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1007,7 +1007,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1016,7 +1016,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1025,7 +1025,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1034,7 +1034,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     }
@@ -1045,7 +1045,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1054,7 +1054,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1063,7 +1063,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1072,7 +1072,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1090,7 +1090,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1099,7 +1099,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1108,7 +1108,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1117,7 +1117,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1126,7 +1126,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1135,7 +1135,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1153,7 +1153,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1162,7 +1162,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1171,7 +1171,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1180,7 +1180,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     }
@@ -1196,7 +1196,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1205,7 +1205,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1214,7 +1214,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1223,7 +1223,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1241,7 +1241,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1250,7 +1250,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1259,7 +1259,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1268,7 +1268,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1277,7 +1277,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1286,7 +1286,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1304,7 +1304,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1313,7 +1313,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1322,7 +1322,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1331,7 +1331,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     }
@@ -1342,7 +1342,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1351,7 +1351,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1360,7 +1360,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1369,7 +1369,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1387,7 +1387,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1396,7 +1396,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1405,7 +1405,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1414,7 +1414,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1423,7 +1423,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1432,7 +1432,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1450,7 +1450,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1459,7 +1459,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1468,7 +1468,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1477,7 +1477,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     }
@@ -1493,7 +1493,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1502,7 +1502,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1511,7 +1511,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1520,7 +1520,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1538,7 +1538,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1547,7 +1547,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1556,7 +1556,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1565,7 +1565,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1574,7 +1574,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1583,7 +1583,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1601,7 +1601,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1610,7 +1610,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1619,7 +1619,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1628,7 +1628,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     }
@@ -1639,7 +1639,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1648,7 +1648,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1657,7 +1657,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1666,7 +1666,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1684,7 +1684,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1693,7 +1693,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1702,7 +1702,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1711,7 +1711,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1720,7 +1720,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1729,7 +1729,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1747,7 +1747,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1756,7 +1756,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1765,7 +1765,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     },
@@ -1774,7 +1774,7 @@ export const scheduleData = [
         cells: [
             { subject: "ОВП (ОУ)", topicNumber: "6.1", type: "лекция", audience: "101" },
             { subject: "ОВП (ОП)", topicNumber: "6.2", type: "семинар", audience: "202" },
-            { subject: "ТВВС", topicNumber: "6.3", type: "с. лекц.", audience: "305" },
+            { subject: "ТВВС", topicNumber: "6.3", type: "практика", audience: "305" },
             { subject: "ОВП (ОУ)", topicNumber: "6.4", type: "лекция", audience: "101" }
         ]
     }

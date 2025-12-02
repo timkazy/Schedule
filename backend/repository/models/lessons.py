@@ -9,15 +9,23 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, Column, Integer, String, TIMESTAMP, ForeignKey
 from dotenv import load_dotenv
-from os import getenv
+import os
 
-load_dotenv('config.env')
+env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../config.env"))
+load_dotenv(env_path)
 
-engine = create_engine('sqlite:///' + getenv('DATABASES_PATH') + '/' + getenv('DATABASE_NAME'))
+# --- Проверим, что переменные реально загрузились ---
+print("📁 Загружаем env из:", env_path)
+print("DATABASES_PATH =", os.getenv("DATABASES_PATH"))
+print("DATABASE_NAME =", os.getenv("DATABASE_NAME"))
+
+# --- Подключаемся к БД ---
+db_path = os.path.join(os.getenv('DATABASES_PATH'), os.getenv('DATABASE_NAME'))
+engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
 sess_maker = sessionmaker(bind=engine, autoflush=True, autocommit=False)
 session = sess_maker()
 
-Base = declarative_base()
+from repository.models.base import Base
 
 class Audience(Base):
     __tablename__ = 'audiences'
@@ -62,14 +70,9 @@ class Lesson(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     date = Column(TIMESTAMP, nullable=False)
 
-    subject_id = Column(Integer, ForeignKey('subject.id'), nullable=False)
-    subject = relationship('Subject', backref="subject")
-
-    audience_number = Column(Integer, ForeignKey('audiences.audience'), nullable=False)
-    audience = relationship('Audience', backref="audience")
-
+    subject_id = Column(Integer, ForeignKey('subjects.id'), nullable=False)
+    audience_number = Column(Integer, ForeignKey('audiences.number'), nullable=False)
     time_id = Column(Integer, ForeignKey('lesson_time.id'), nullable=False)
-    time = relationship('LessonTime', lazy="joined", backref="time")
     
     def create_lesson(self, date: TIMESTAMP, subject_id: int, time_id: int):
         try:
@@ -121,3 +124,10 @@ class Lesson(Base):
         except Exception as e:
             print(f"Error: cannot delete a lesson - {e}")
             return False
+
+# ✅ добавляем связи после импорта Subject, чтобы избежать циклической ошибки
+from repository.models.subjects import Subject  # импортируем только после объявления Lesson
+
+Lesson.subject = relationship(Subject, backref="lessons")
+Lesson.audience = relationship(Audience, backref="lessons")
+Lesson.time = relationship(LessonTime, backref="lessons")

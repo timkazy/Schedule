@@ -57,7 +57,7 @@ export const ActionPanelProvider = ({ children }) => {
     };
   }, [isOpen, anchorRect, closePanel]);
 
-
+  
   return (
     <ActionPanelContext.Provider value={{ isOpen, position, content, openPanel, closePanel }}>
       {children}
