@@ -5,7 +5,6 @@ function TableColumn({
   index,
   cells = [],
   date = "",
-  onCellChange,
   isActive = false,
   isEditing = false,
 }) {

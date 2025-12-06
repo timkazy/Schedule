@@ -7,42 +7,11 @@ import { useEdit } from "../context/useEdit";
 function Schedule() {
   const {
     scheduleData,
-    updateCellValue,
     isEditing,
-    setSelectedCells,
     activeTableId,
-    setActiveTableId,
   } = useEdit();
 
   const [activeDay, setActiveDay] = useState(0);
-
-  // const handleCellClick = (tableId, colIndex, cellIndex, e) => {
-  //   if (!isEditing) return;
-
-  //   if (e.ctrlKey || e.metaKey) {
-  //     setSelectedCells((prev) => {
-  //       const exists = prev.some(
-  //         (c) =>
-  //           c.tableId === tableId &&
-  //           c.columnIndex === colIndex &&
-  //           c.cellIndex === cellIndex
-  //       );
-  //       return exists
-  //         ? prev.filter(
-  //             (c) =>
-  //               !(
-  //                 c.tableId === tableId &&
-  //                 c.columnIndex === colIndex &&
-  //                 c.cellIndex === cellIndex
-  //               )
-  //           )
-  //         : [...prev, { tableId, columnIndex: colIndex, cellIndex }];
-  //     });
-  //   } else {
-  //     setActiveTableId(tableId);
-  //     setSelectedCells([{ tableId, columnIndex: colIndex, cellIndex }]);
-  //   }
-  // };
 
   const dayTables =
     activeDay === 0
@@ -61,8 +30,6 @@ function Schedule() {
               isEditing={isEditing}
               columnsData={table.columns}
               infoData={table.info || []}
-              onCellChange={updateCellValue}
-              // onCellClick={handleCellClick}
               activeTableId={activeTableId}
               platoonId={table.platoonId}
             />

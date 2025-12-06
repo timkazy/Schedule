@@ -6,8 +6,6 @@ function Table({
   isEditing,
   columnsData,
   infoData,
-  onCellChange,
-  // onCellClick,
   activeTableId,
   platoonId,
 }) {
@@ -31,12 +29,6 @@ function Table({
                 index={index}
                 date={column.title} // дата
                 cells={column.cells || []}
-                // onCellClick={(index, rowIndex, e) =>
-                //   onCellClick(platoonId, index, rowIndex, e)
-                // }
-                onCellChange={(ci, ri, field, val) =>
-                  onCellChange(platoonId, ci, ri, field, val)
-                }
                 isActive={platoonId === activeTableId}
                 isEditing={isEditing && platoonId === activeTableId}
               />
