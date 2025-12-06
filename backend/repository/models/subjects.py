@@ -9,17 +9,19 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, insert
 from dotenv import load_dotenv
-from os import getenv
+import os
 from .squads import *
 from .officers import *
 
-load_dotenv('config.env')
+env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../config.env"))
+load_dotenv(env_path)
 
-engine = create_engine('sqlite:///' + getenv('DATABASES_PATH') + '/' + getenv('DATABASE_NAME'))
+db_path = os.path.join(os.getenv('DATABASES_PATH'), os.getenv('DATABASE_NAME'))
+engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
 sess_maker = sessionmaker(bind=engine, autoflush=True, autocommit=False)
 session = sess_maker()
 
-Base = declarative_base()
+from repository.models.base import Base
 
 class SubjectType(Base):
     __tablename__ = 'subject_types'

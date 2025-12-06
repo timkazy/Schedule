@@ -1,13 +1,18 @@
 import { useEdit } from "../../context/useEdit";
 
+import humanIcon from "../../assets/icons/human.svg";
+
 function TableCell({
   tableId,
   columnIndex,
   cellIndex,
+
   subject = "",
-  topicNumber = "",
+  topic = null,
+  subtopic = null,
   type = "",
-  audience = "",
+  audience = null,
+  teacher = ""
 }) {
   const { isEditing, selectedCells, setSelectedCells, activeTableId, setActiveTableId } = useEdit();
 
@@ -19,9 +24,10 @@ function TableCell({
 
   const isEmpty =
     (!subject || subject.trim() === "") &&
-    (!topicNumber || topicNumber.trim() === "") &&
+    (!topic && !subtopic) && // оба null или undefined
     (!type || type.trim() === "") &&
-    (!audience || audience.trim() === "");
+    (!audience || audience === null || audience === 0) &&
+    (!teacher || teacher.trim() === "");
 
   const handleClick = (e) => {
     if (!isEditing) return;
@@ -82,7 +88,6 @@ function TableCell({
     });
   };
 
-
   const borderClass =
     isActive && isSelected
       ? "border-[0.05rem] border-dashed border-black"
@@ -108,15 +113,36 @@ function TableCell({
         </div>
       ) : (
         <>
-          <div className="w-full text-right text-[11px] font-medium leading-none">
-            <i>{audience}{audience ? "к" : ""}</i>
+          <div className="w-full flex justify-between text-[11px] leading-none font-medium">
+            {(!teacher || teacher.trim() === "")
+              ? <div><img src={humanIcon} alt={teacher} className="w-[0.7rem] h-[0.7rem] opacity-30" /></div>
+              : <div title={teacher}><img src={humanIcon} alt={teacher} className="w-[0.7rem] h-[0.7rem]" /></div>
+            }
+
+            <span>
+              {(!audience || audience === null || audience === 0)
+                ? <i className="opacity-50">-</i>
+                : <i>{audience}к</i>
+              }
+            </span>
           </div>
           <div className="text-[18px] font-bold leading-none truncate w-full px-1">
-            {subject}
+            {subject && subject.trim() !== "" ? subject : <span className="opacity-50">-</span>}
           </div>
           <div className="w-full flex justify-between text-[11px] leading-none font-medium">
-            <span>{topicNumber}</span>
-            <span>{type}</span>
+            <span>
+              {/* Для экзамена тему не показываем вообще */}
+              {type && type.toLowerCase() === "экзамен"
+                ? "" // Пустая строка для экзамена
+                : (topic || subtopic
+                  ? (topic && subtopic ? `${topic}.${subtopic}` : topic ? `${topic}` : "")
+                  : <span className="opacity-50">-</span>
+                )
+              }
+            </span>
+            <span>
+              {type && type.trim() !== "" ? type : <span className="opacity-50">-</span>}
+            </span>
           </div>
         </>
       )}
