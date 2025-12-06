@@ -16,8 +16,8 @@ export const tablesData = [
                     {
                         title: "1.09",
                         cells: [
-                            { id: 1, subject: "ОВП (ОУ)", topic: 6, subtopic: 1, type: "лекция", audience: 101, teacher: null},
-                            { id: 2, subject: "ОВП (ОП)", topic: 6, subtopic: 2, subtopic: 2, type: "семинар", audience: 202, teacher: "Петров Петр Петрович" },
+                            { id: 1, subject: "ОВП (ОУ)", topic: { topic: 6, subtopic: 1 }, type: "лекция", audience: 101},
+                            { id: 2, subject: "ОВП (ОП)", topic: 6, subtopic: 2, type: "семинар", audience: 202, teacher: "Петров Петр Петрович" },
                             { id: 3, subject: "ТВВС", topic: 6, subtopic: 3, type: "практика", audience: 305, teacher: "Сидоров Антон Алексеевич" },
                             { id: 1, subject: "ОВП (ОУ)", topic: 6, subtopic: 4, type: "лекция", audience: 101, teacher: "Кузнецов Виталий Владимирович" }
                         ]

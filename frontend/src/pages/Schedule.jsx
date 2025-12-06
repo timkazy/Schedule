@@ -16,38 +16,38 @@ function Schedule() {
 
   const [activeDay, setActiveDay] = useState(0);
 
-  const handleCellClick = (tableId, colIndex, cellIndex, e) => {
-    if (!isEditing) return;
+  // const handleCellClick = (tableId, colIndex, cellIndex, e) => {
+  //   if (!isEditing) return;
 
-    if (e.ctrlKey || e.metaKey) {
-      setSelectedCells((prev) => {
-        const exists = prev.some(
-          (c) =>
-            c.tableId === tableId &&
-            c.columnIndex === colIndex &&
-            c.cellIndex === cellIndex
-        );
-        return exists
-          ? prev.filter(
-              (c) =>
-                !(
-                  c.tableId === tableId &&
-                  c.columnIndex === colIndex &&
-                  c.cellIndex === cellIndex
-                )
-            )
-          : [...prev, { tableId, columnIndex: colIndex, cellIndex }];
-      });
-    } else {
-      setActiveTableId(tableId);
-      setSelectedCells([{ tableId, columnIndex: colIndex, cellIndex }]);
-    }
-  };
+  //   if (e.ctrlKey || e.metaKey) {
+  //     setSelectedCells((prev) => {
+  //       const exists = prev.some(
+  //         (c) =>
+  //           c.tableId === tableId &&
+  //           c.columnIndex === colIndex &&
+  //           c.cellIndex === cellIndex
+  //       );
+  //       return exists
+  //         ? prev.filter(
+  //             (c) =>
+  //               !(
+  //                 c.tableId === tableId &&
+  //                 c.columnIndex === colIndex &&
+  //                 c.cellIndex === cellIndex
+  //               )
+  //           )
+  //         : [...prev, { tableId, columnIndex: colIndex, cellIndex }];
+  //     });
+  //   } else {
+  //     setActiveTableId(tableId);
+  //     setSelectedCells([{ tableId, columnIndex: colIndex, cellIndex }]);
+  //   }
+  // };
 
   const dayTables =
     activeDay === 0
       ? scheduleData.flatMap((day) => day.platoons)
-      : scheduleData.find((day) => day.dayName === activeDay)?.platoons || [];
+      : scheduleData.find((day) => day.dayId === activeDay)?.platoons || [];
 
   return (
     <div className="relative">
@@ -60,11 +60,11 @@ function Schedule() {
             <Table
               isEditing={isEditing}
               columnsData={table.columns}
+              infoData={table.info || []}
               onCellChange={updateCellValue}
-              onCellClick={handleCellClick}
+              // onCellClick={handleCellClick}
               activeTableId={activeTableId}
-              platoonId={table.id}
-              platoonName={table.platoonName}
+              platoonId={table.platoonId}
             />
           </div>
         ))}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import DropdownList from "./DropdownList";
-import { dropdownOptions } from "./dropdownOptions";
+// import { dropdownOptions } from "./dropdownOptions";
+import { dropDownOptionsData } from "../../data/dropDownOptionsData";
 import { useActionPanel } from "../../context/ActionPanelContext";
 import { useEdit } from "../../context/useEdit";
 
@@ -46,6 +47,45 @@ function EditSubjectPanel({ }) {
 
     closePanel();
   };
+
+const getOptionsForField = (field) => {
+    switch (field) {
+      case "subject":
+        return dropDownOptionsData.subjects.map(item => ({
+          id: item.id,
+          label: item.name,
+          value: item // отправляем весь объект
+        }));
+      case "topicNumber":
+        return dropDownOptionsData.topicNumbers.map(item => ({
+          id: `${item.topic}.${item.subtopic}`,
+          label: `${item.topic}.${item.subtopic} (${item.typeOfActivity})`,
+          value: item // отправляем весь объект
+        }));
+      case "type":
+        return dropDownOptionsData.types.map((item, index) => ({
+          id: index,
+          label: item,
+          value: item
+        }));
+      case "audience":
+        return dropDownOptionsData.audiences.map(item => ({
+          id: item.id,
+          label: `Ауд. ${item.id} (приоритет: ${item.importance})`,
+          value: item.id
+        }));
+      case "teacher":
+        return dropDownOptionsData.teachers.map((item, index) => ({
+          id: index,
+          label: item,
+          value: item
+        }));
+      default:
+        return [];
+    }
+  };
+
+
   return (
     <div className="p-2 w-[200px]">
       {view === "main" && (
@@ -72,7 +112,7 @@ function EditSubjectPanel({ }) {
           </button>
 
           <DropdownList
-            options={dropdownOptions[selectedField ? selectedField + "s" : "subjects"] || []}
+            options={getOptionsForField(selectedField)}
             onSelect={handleSelect}
           />
         </div>

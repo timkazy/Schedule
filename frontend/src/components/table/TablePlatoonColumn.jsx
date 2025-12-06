@@ -1,7 +1,8 @@
 function TablePlatoonColumn({ platoon, isActive }) {
   return (
     <div
-      className={`grid items-center text-center font-bold border-r border-r-black w-[70px] ${
+      className={`grid items-center text-center font-bold w-[90px] ${
+      // className={`grid items-center text-center font-bold border-r border-r-black w-[70px] ${
         isActive ? "border-dashed" : ""
       }`}
     >

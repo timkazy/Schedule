@@ -1,4 +1,5 @@
 import { createContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { tablesData } from "../data/tablesData";
 
 export const EditContext = createContext();
 
@@ -15,12 +16,21 @@ export const EditProvider = ({ children }) => {
 
   // --- загрузка расписания с backend ---
   const fetchSchedule = useCallback(async () => {
+    // try {
+    //   const res = await fetch("http://localhost:8000/api/schedule");
+    //   const data = await res.json();
+    //   setScheduleData(data);
+    // } catch (err) {
+    //   console.error("Ошибка загрузки расписания:", err);
+    // }
+
     try {
-      const res = await fetch("http://localhost:8000/api/schedule");
-      const data = await res.json();
-      setScheduleData(data);
+      // Используем локальные данные вместо запроса к бэкенду
+      console.log("Загрузка локальных данных из tablesData.js");
+      setScheduleData(tablesData);
     } catch (err) {
       console.error("Ошибка загрузки расписания:", err);
+      setScheduleData([]); // На случай ошибки
     }
   }, []);
 
@@ -31,9 +41,9 @@ export const EditProvider = ({ children }) => {
   // --- получить значение ячейки ---
   const getCellValue = useCallback(
     (tableId, colIndex, cellIndex) => {
-      const day = scheduleData.find((d) => d.platoons.some((t) => t.id === tableId));
+      const day = scheduleData.find((d) => d.platoons.some((t) => t.platoonId === tableId));
       if (!day) return null;
-      const table = day.platoons.find((t) => t.id === tableId);
+      const table = day.platoons.find((t) => t.platoonId === tableId);
       if (!table) return null;
       const column = table.columns[colIndex];
       if (!column) return null;
@@ -44,40 +54,73 @@ export const EditProvider = ({ children }) => {
 
   // --- обновить ячейку ---
   const updateCellValue = useCallback(async (tableId, colIndex, cellIndex, newValue) => {
-    // 1. Локально обновляем UI
-    setScheduleData((prev) =>
-      prev.map((day) => ({
+    // ЛОКАЛЬНО
+    setScheduleData((prev) => {
+      const updatedData = prev.map((day) => ({
         ...day,
         platoons: day.platoons.map((table) => {
-          if (String(table.id) !== String(tableId)) return table;
+          if (table.platoonId !== tableId) return table;
           const newCols = [...table.columns];
-          const cell = { ...newCols[colIndex].cells[cellIndex], ...newValue };
+          if (!newCols[colIndex] || !newCols[colIndex].cells) {
+            console.error(`Колонка ${colIndex} или её ячейки не найдены`);
+            return table;
+          }
+          const existingCell = newCols[colIndex].cells[cellIndex] || {};
+          const cell = { ...existingCell, ...newValue };
           newCols[colIndex].cells[cellIndex] = cell;
           return { ...table, columns: newCols };
         }),
-      }))
-    );
+      }));
+
+      // Сохраняем в localStorage
+      try {
+        localStorage.setItem('scheduleData', JSON.stringify(updatedData));
+        console.log('Данные сохранены в localStorage');
+      } catch (err) {
+        console.error('Ошибка сохранения в localStorage:', err);
+      }
+
+      return updatedData;
+    });
 
     setHasChanges(true);
 
-    // 2. Отправляем изменения на сервер
-    try {
-      const cell = getCellValue(tableId, colIndex, cellIndex);
-      if (!cell?.lessonId) return;
 
-      await fetch("http://localhost:8000/api/schedule/savecell", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lessonId: cell.lessonId,
-          subject: newValue.subject,
-          type: newValue.type,
-          audience: newValue.audience,
-        }),
-      });
-    } catch (err) {
-      console.error("Ошибка при сохранении ячейки:", err);
-    }
+    // С СЕРВЕРОМ
+    // // 1. Локально обновляем UI
+    // setScheduleData((prev) =>
+    //   prev.map((day) => ({
+    //     ...day,
+    //     platoons: day.platoons.map((table) => {
+    // if (table.platoonId !== tableId) return table;
+    //       const newCols = [...table.columns];
+    //       const cell = { ...newCols[colIndex].cells[cellIndex], ...newValue };
+    //       newCols[colIndex].cells[cellIndex] = cell;
+    //       return { ...table, columns: newCols };
+    //     }),
+    //   }))
+    // );
+
+    // setHasChanges(true);
+
+    // // 2. Отправляем изменения на сервер
+    // try {
+    //   const cell = getCellValue(tableId, colIndex, cellIndex);
+    //   if (!cell?.lessonId) return;
+
+    //   await fetch("http://localhost:8000/api/schedule/savecell", {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify({
+    //       lessonId: cell.lessonId,
+    //       subject: newValue.subject,
+    //       type: newValue.type,
+    //       audience: newValue.audience,
+    //     }),
+    //   });
+    // } catch (err) {
+    //   console.error("Ошибка при сохранении ячейки:", err);
+    // }
   }, [getCellValue]);
 
   // --- вычисляем, пуста ли выбранная ячейка ---
@@ -118,11 +161,13 @@ export const EditProvider = ({ children }) => {
             setCopiedCell(cell);
             selectedCells.forEach(({ tableId, columnIndex, cellIndex }) => {
               updateCellValue(tableId, columnIndex, cellIndex, {
-                subject: "",
-                topicNumber: "",
-                type: "",
-                audience: "",
-                teacher: "",
+                id: null,
+                subject: null,
+                topic: null,
+                subtopic: null,
+                type: null,
+                audience: null,
+                teacher: null,
               });
             });
             setHasChanges(true);
@@ -142,11 +187,12 @@ export const EditProvider = ({ children }) => {
           if (selectedCount >= 1) {
             selectedCells.forEach(({ tableId, columnIndex, cellIndex }) => {
               updateCellValue(tableId, columnIndex, cellIndex, {
-                subject: "",
-                topicNumber: "",
-                type: "",
-                audience: "",
-                teacher: "",
+                id: null,
+                subject: null,
+                topic: null,
+                type: null,
+                audience: null,
+                teacher: null,
               });
             });
             setHasChanges(true);
@@ -172,6 +218,68 @@ export const EditProvider = ({ children }) => {
           }
           setSelectedCells(allCells);
           break;
+
+        case "updateField": {
+          const { tableId, columnIndex, cellIndex, field, value } = payload;
+
+          // Получаем текущее значение ячейки
+          const currentCell = getCellValue(tableId, columnIndex, cellIndex);
+
+          // Подготавливаем обновление в зависимости от поля
+          let updateData = {};
+
+          switch (field) {
+            case "subject":
+              // Для предмета сохраняем имя и id (если нужно)
+              updateData = {
+                subject: value.name,
+                subjectId: value.id,
+                topicNumber: null,
+                topic: null,
+                subtopic: null,
+                type: null,
+                teacher: null,
+                audience: null,
+              };
+              break;
+
+            case "topicNumber":
+              // Для темы сохраняем topic, subtopic и typeOfActivity
+              updateData = {
+                topicNumber: `${value.topic}.${value.subtopic}`,
+                topic: value.topic,
+                subtopic: value.subtopic,
+                type: value.typeOfActivity // автоматически обновляем тип занятия
+              };
+              break;
+
+            case "type":
+              // Просто тип занятия
+              updateData = { type: value };
+              break;
+
+            case "audience":
+              // Аудитория - сохраняем id
+              updateData = { audience: value };
+              break;
+
+            case "teacher":
+              // Преподаватель
+              updateData = { teacher: value };
+              break;
+
+            default:
+              console.warn(`Неизвестное поле для обновления: ${field}`);
+              return;
+          }
+
+          // Объединяем с текущими данными ячейки
+          const newValue = { ...currentCell, ...updateData };
+
+          // Обновляем ячейку
+          updateCellValue(tableId, columnIndex, cellIndex, newValue);
+          break;
+        }
 
         case "exit":
           setIsEditing(false);
