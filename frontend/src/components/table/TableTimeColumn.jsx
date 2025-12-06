@@ -16,7 +16,7 @@ function TableTimeColumn({ timeCells = [], isActive }) {
       </div>
       <div className="grid justify-items-center p-0 m-0 items-center h-[250px] text-center">
         {timeCells.map((timeData, index) => (
-          <TimeCell key={index} timeData={timeData} isActive={isActive} />
+          <TimeCell key={index} timeData={timeData}/>
         ))}
       </div>
     </div>

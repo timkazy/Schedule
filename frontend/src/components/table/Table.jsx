@@ -5,33 +5,35 @@ import TableTimeColumn from "./TableTimeColumn";
 function Table({
   isEditing,
   columnsData,
+  infoData,
   onCellChange,
-  onCellClick,
+  // onCellClick,
   activeTableId,
   platoonId,
-  platoonName,
 }) {
   return (
     <div className="flex flex-col items-center">
       <div className="relative w-full max-w-6xl flex overflow-hidden rounded-lg">
         <div className="sticky left-0 bg-white z-10">
           <TableInfo
-            platoon={platoonName}
+            platoon={platoonId}
+            infoData={infoData || []}
             isActive={isEditing && platoonId === activeTableId}
           />
         </div>
 
         <div className="overflow-x-auto overflow-y-hidden scroll-smooth w-full relative">
           <div className="flex w-max">
-            {columnsData.map((column, colIndex) => (
+            {columnsData.map((column, index) => (
               <TableColumn
+                key={index}
                 tableId={platoonId}
-                columnIndex={colIndex}
-                columnTitle={column.title}
+                index={index}
+                date={column.title} // дата
                 cells={column.cells || []}
-                onCellClick={(colIndex, rowIndex, e) =>
-                  onCellClick(platoonId, colIndex, rowIndex, e)
-                }
+                // onCellClick={(index, rowIndex, e) =>
+                //   onCellClick(platoonId, index, rowIndex, e)
+                // }
                 onCellChange={(ci, ri, field, val) =>
                   onCellChange(platoonId, ci, ri, field, val)
                 }
