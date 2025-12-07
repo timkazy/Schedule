@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee 10s linear infinite;
+}
+
+
+/* body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  background: #f4f6f8;
+  color: #222;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  overflow-x: auto;
+  display: block;
+  white-space: nowrap;
+}
+
+.schedule-table th,
+.schedule-table td {
+  padding: 8px;
+  text-align: center;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.schedule-table th {
+  background: #0078d7;
+  color: white;
+  position: sticky;
+  top: 0;
+}
+
+.add-btn {
+  margin-top: 15px;
+  display: block;
+  background: #0078d7;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.add-btn:hover {
+  background: #005fa3;
+} */
