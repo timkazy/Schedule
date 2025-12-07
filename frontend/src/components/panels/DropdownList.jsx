@@ -21,9 +21,10 @@ function DropdownList({ options = [], onSelect }) {
           <div
             key={opt.id}
             onClick={() => onSelect(opt.value)}
-            className="px-2 py-1 text-sm hover:bg-green-50 cursor-pointer rounded"
+            className={`px-2 py-1 text-sm hover:bg-green-50 cursor-pointer rounded ${opt.id === "not-selected" ? "opacity-50" : ""}`}
           >
             {opt.label}
+            {opt.id === "not-selected" && " ✕"}
           </div>
         ))}
       </div>

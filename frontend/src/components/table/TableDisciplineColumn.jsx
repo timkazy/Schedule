@@ -1,10 +1,10 @@
 function TableDisciplineColumn({ isActive, infoData = [] }) {
   return (
     <div
-      className={`text-left ${isActive ? "border-dashed" : ""}`}
+      className={`${isActive ? "border-dashed" : ""}`}
     >
       <div
-        className={`grid items-center font-bold text-lg px-3 mb-3 h-[28px] border-b border-b-black ${
+        className={`font-semibold grid items-center px-4 mb-3 h-[32px] border-b border-b-black ${
           isActive ? "border-dashed" : ""
         }`}
       >
@@ -12,7 +12,7 @@ function TableDisciplineColumn({ isActive, infoData = [] }) {
       </div>
 
       {infoData.map((infoString) => (
-        <div key={infoString.id} className="font-normal px-3">
+        <div key={infoString.id} className="px-4 text-left">
           {infoString.subject}
         </div>
       ))}

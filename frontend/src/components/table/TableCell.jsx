@@ -94,7 +94,7 @@ function TableCell({
       : "border border-transparent border-dashed";
 
   const bgClass =
-    !isEmpty && type?.toLowerCase() === "экзамен" ? "bg-yellow-200" : "bg-transparent";
+    !isEmpty && type?.toLowerCase() === "экзамен" ? "bg-[#fff52e]" : "bg-transparent";
 
   const textClass = isEmpty ? "text-gray-400" : "text-black";
 
@@ -102,34 +102,36 @@ function TableCell({
     <div
       onClick={handleClick}
       className={`
+        leading-none
+        h-[3.25rem]
         flex flex-col justify-between items-center text-center select-none cursor-pointer
-        flex-shrink-0 w-[110px] aspect-[2/1] p-1 relative
+        flex-shrink-0 w-[100px] aspect-[2/1] p-[0.35rem] relative
         ${textClass} ${bgClass} ${borderClass}
+
       `}
     >
       {isEmpty ? (
-        <div className="flex items-center justify-center h-full text-[15px] font-semibold leading-none text-center">
+        <div className="leading-none flex items-center justify-center h-full text-[15px] font-semibold text-center">
           нет занятия
         </div>
       ) : (
         <>
-          <div className="w-full flex justify-between text-[11px] leading-none font-medium">
+          <div className=" w-full flex justify-between text-[11px] leading-none font-medium">
             {(!teacher || teacher.trim() === "")
-              ? <div><img src={humanIcon} alt={teacher} className="w-[0.7rem] h-[0.7rem] opacity-30" /></div>
-              : <div title={teacher}><img src={humanIcon} alt={teacher} className="w-[0.7rem] h-[0.7rem]" /></div>
+              ? <div><img src={humanIcon} alt={teacher} className=" w-[0.55rem] h-[0.55rem] opacity-30"/></div>
+              : <div title={teacher}><img src={humanIcon} alt={teacher} className=" w-[0.55rem] h-[0.55rem] opacity-65 hover:opacity-100 transition-all duration-300 ease-in-out"/></div>
             }
-
-            <span>
+            <span className=" opacity-65 hover:opacity-100 transition-all duration-300 ease-in-out">
               {(!audience || audience === null || audience === 0)
                 ? <i className="opacity-50">-</i>
                 : <i>{audience}к</i>
               }
             </span>
           </div>
-          <div className="text-[18px] font-bold leading-none truncate w-full px-1">
+          <div className=" text-[1rem] font-semibold leading-none truncate w-full opacity-95 hover:opacity-100 transition-all duration-300 ease-in-out">
             {subject && subject.trim() !== "" ? subject : <span className="opacity-50">-</span>}
           </div>
-          <div className="w-full flex justify-between text-[11px] leading-none font-medium">
+          <div className=" w-full flex justify-between text-[11px] leading-none font-medium">
             <span>
               {/* Для экзамена тему не показываем вообще */}
               {type && type.toLowerCase() === "экзамен"

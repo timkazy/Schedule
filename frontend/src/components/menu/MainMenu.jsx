@@ -35,8 +35,8 @@ function MainMenu() {
   };
 
   return (
-    <div className="fixed left-4 top-1/2 transform -translate-y-72 z-50">
-      <div className="bg-green-400 rounded-2xl p-2 shadow-lg">
+    <div className="fixed left-4 top-[53%] transform -translate-y-72 z-50">
+      <div className={`bg-green-400 rounded-2xl p-2 shadow-lg transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
         <div className="flex flex-col space-y-5">
           {menuItems.map((item) => (
             <Link
@@ -47,7 +47,7 @@ function MainMenu() {
                 ${
                   location.pathname === item.link
                     ? "opacity-100"
-                    : "opacity-50 hover:opacity-100"
+                    : "opacity-60 hover:opacity-100"
                 }`}
               title={item.name}
             >

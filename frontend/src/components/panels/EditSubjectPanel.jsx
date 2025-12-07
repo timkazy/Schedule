@@ -42,47 +42,64 @@ function EditSubjectPanel({ }) {
       columnIndex,
       cellIndex,
       field: selectedField,
-      value,
+      value: value === null ? null : value,
     });
 
     closePanel();
   };
 
 const getOptionsForField = (field) => {
+    // Базовая опция "Не выбрано"
+    const notSelectedOption = {
+      id: "not-selected",
+      label: "Не выбрано",
+      value: null // значение null для очистки поля
+    };
+
+    let options = [];
+
     switch (field) {
       case "subject":
-        return dropDownOptionsData.subjects.map(item => ({
+        options = dropDownOptionsData.subjects.map(item => ({
           id: item.id,
           label: item.name,
-          value: item // отправляем весь объект
+          value: item
         }));
+        break;
       case "topicNumber":
-        return dropDownOptionsData.topicNumbers.map(item => ({
+        options = dropDownOptionsData.topicNumbers.map(item => ({
           id: `${item.topic}.${item.subtopic}`,
           label: `${item.topic}.${item.subtopic} (${item.typeOfActivity})`,
-          value: item // отправляем весь объект
+          value: item
         }));
+        break;
       case "type":
-        return dropDownOptionsData.types.map((item, index) => ({
+        options = dropDownOptionsData.types.map((item, index) => ({
           id: index,
           label: item,
           value: item
         }));
+        break;
       case "audience":
-        return dropDownOptionsData.audiences.map(item => ({
+        options = dropDownOptionsData.audiences.map(item => ({
           id: item.id,
           label: `Ауд. ${item.id} (приоритет: ${item.importance})`,
           value: item.id
         }));
+        break;
       case "teacher":
-        return dropDownOptionsData.teachers.map((item, index) => ({
+        options = dropDownOptionsData.teachers.map((item, index) => ({
           id: index,
           label: item,
           value: item
         }));
+        break;
       default:
-        return [];
+        options = [];
     }
+
+    // Добавляем "Не выбрано" в начало списка
+    return [notSelectedOption, ...options];
   };
 
 
@@ -111,10 +128,12 @@ const getOptionsForField = (field) => {
             ← Назад
           </button>
 
-          <DropdownList
-            options={getOptionsForField(selectedField)}
-            onSelect={handleSelect}
-          />
+          {selectedField && (
+            <DropdownList
+              options={getOptionsForField(selectedField)}
+              onSelect={handleSelect}
+            />
+          )}
         </div>
       )}
     </div>

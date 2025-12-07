@@ -1,18 +1,18 @@
 function TablePlatoonColumn({ platoon, isActive, showBorderRight = false }) {
   return (
     <div
-      className={`grid items-center text-center font-bold transition-all duration-500 ${
+      className={`${
         showBorderRight ? "border-r border-r-black" : ""
       } ${isActive ? "border-dashed" : ""}`}
     >
       <div
-        className={`text-lg border-b border-b-black h-[28px] px-3 transition-all duration-300 ${
+        className={`font-semibold grid items-center border-b border-b-black h-[32px] px-4 ${
           isActive ? "border-dashed" : ""
         }`}
       >
         Взвод
       </div>
-      <div className="text-lg grid justify-items-center items-center p-0 m-0 h-[250px] text-center transition-all duration-300">
+      <div className="text-[1.1rem] font-semibold grid justify-items-center items-center p-0 m-0 h-[211px] text-center">
         {platoon || "—"}
       </div>
     </div>
