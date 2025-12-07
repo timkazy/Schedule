@@ -143,12 +143,14 @@ class DatabaseCreator:
                 subject_load_id INTEGER NOT NULL,
                 date DATE NOT NULL,
                 sequence_number INTEGER NOT NULL,
+                audience INTEGER NOT NULL,
 
                 UNIQUE(squad, date, sequence_number),         
                 FOREIGN KEY (squad) REFERENCES squads(number) ON UPDATE CASCADE,
                 FOREIGN KEY (theme_id) REFERENCES themes(id) ON UPDATE CASCADE,
                 FOREIGN KEY (officer_id) REFERENCES officers(id) ON UPDATE CASCADE,
-                FOREIGN KEY (subject_load_id) REFERENCES subject_loads(id) ON UPDATE CASCADE
+                FOREIGN KEY (subject_load_id) REFERENCES subject_loads(id) ON UPDATE CASCADE,
+                FOREIGN KEY (audience) REFERENCES audiences(number) ON UPDATE CASCADE
             );""")
 
     def init_database(self):
