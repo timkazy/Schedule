@@ -5,7 +5,6 @@ function TableColumn({
   index,
   cells = [],
   date = "",
-  onCellChange,
   isActive = false,
   isEditing = false,
 }) {
@@ -16,13 +15,14 @@ function TableColumn({
   return (
     <div className="flex flex-col">
       <div
-        className={`grid items-center text-center font-bold text-xl h-[28px] border-b border-b-black ${isActive && isEditing ? "border-dashed" : ""
+        className={`grid items-center text-center font-medium h-[32px] border-b border-b-black ${isActive && isEditing ? "border-dashed" : ""
           }`}
       >
         {date}
       </div>
 
-      <div className="grid justify-items-center items-center p-0 m-0 h-[250px]">
+      <div className="grid justify-items-center items-center">
+      {/* <div className="grid justify-items-center items-center h-[200px]"> */}
         {filledCells.map((cell, rowIndex) => (
           <TableCell
             key={`${tableId}-${index}-${rowIndex}`}

@@ -190,6 +190,7 @@ export const EditProvider = ({ children }) => {
                 id: null,
                 subject: null,
                 topic: null,
+                subtopic: null,
                 type: null,
                 audience: null,
                 teacher: null,
@@ -232,8 +233,8 @@ export const EditProvider = ({ children }) => {
             case "subject":
               // Для предмета сохраняем имя и id (если нужно)
               updateData = {
-                subject: value.name,
-                subjectId: value.id,
+                subject: value === null ? null : value.name,
+                subjectId: value === null ? null : value.id,
                 topicNumber: null,
                 topic: null,
                 subtopic: null,
@@ -245,11 +246,13 @@ export const EditProvider = ({ children }) => {
 
             case "topicNumber":
               // Для темы сохраняем topic, subtopic и typeOfActivity
-              updateData = {
-                topicNumber: `${value.topic}.${value.subtopic}`,
+              updateData = value === null ? {
+                topic: null,
+                subtopic: null
+              } : {
                 topic: value.topic,
                 subtopic: value.subtopic,
-                type: value.typeOfActivity // автоматически обновляем тип занятия
+                type: value.typeOfActivity
               };
               break;
 
@@ -275,7 +278,7 @@ export const EditProvider = ({ children }) => {
 
           // Объединяем с текущими данными ячейки
           const newValue = { ...currentCell, ...updateData };
-
+          console.log('Новое значение ячейки:', newValue);
           // Обновляем ячейку
           updateCellValue(tableId, columnIndex, cellIndex, newValue);
           break;
@@ -291,35 +294,6 @@ export const EditProvider = ({ children }) => {
   );
 
   handleActionRef.current = handleAction;
-
-  // --- горячие клавиши ---
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!isEditing) return;
-      if (e.ctrlKey) {
-        switch (e.key.toLowerCase()) {
-          case "c":
-            e.preventDefault();
-            handleAction("copy");
-            break;
-          case "x":
-            e.preventDefault();
-            handleAction("cut");
-            break;
-          case "v":
-            e.preventDefault();
-            handleAction("paste");
-            break;
-          case "a":
-            e.preventDefault();
-            handleAction("all");
-            break;
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isEditing, selectedCells, copiedCell, handleAction]);
 
   return (
     <EditContext.Provider

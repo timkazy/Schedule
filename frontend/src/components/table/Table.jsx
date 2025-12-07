@@ -6,13 +6,13 @@ function Table({
   isEditing,
   columnsData,
   infoData,
-  onCellChange,
-  // onCellClick,
   activeTableId,
   platoonId,
 }) {
   return (
-    <div className="flex flex-col items-center">
+    // Experimental
+    <div className={`flex flex-col items-center ${isEditing ? "hover:scale-[101%] transition-transform ease-in-out duration-300" : ""}`}>
+    {/* <div className="flex flex-col items-center"> */}
       <div className="relative w-full max-w-6xl flex overflow-hidden rounded-lg">
         <div className="sticky left-0 bg-white z-10">
           <TableInfo
@@ -31,12 +31,6 @@ function Table({
                 index={index}
                 date={column.title} // дата
                 cells={column.cells || []}
-                // onCellClick={(index, rowIndex, e) =>
-                //   onCellClick(platoonId, index, rowIndex, e)
-                // }
-                onCellChange={(ci, ri, field, val) =>
-                  onCellChange(platoonId, ci, ri, field, val)
-                }
                 isActive={platoonId === activeTableId}
                 isEditing={isEditing && platoonId === activeTableId}
               />
@@ -46,12 +40,6 @@ function Table({
 
         <div className="sticky right-0 bg-white z-10">
           <TableTimeColumn
-            timeCells={[
-              ["08:30", "10:05"],
-              ["10:15", "11:50"],
-              ["12:30", "14:05"],
-              ["14:15", "15:50"],
-            ]}
             isActive={isEditing && platoonId === activeTableId}
           />
         </div>
