@@ -1,12 +1,37 @@
+// src/components/menu/AddMenu.jsx
 import searchIcon from "../../assets/icons/search.svg";
 import editIcon from "../../assets/icons/edit.svg";
 import addIcon from "../../assets/icons/add.svg";
 import printIcon from "../../assets/icons/print.svg";
 
 import { useEdit } from "../../context/useEdit";
+import { exportToExcel } from '../../utils/excelExport'; // Импортируем функцию экспорта
 
 function AddMenu() {
-  const { isEditing, setIsEditing } = useEdit();
+  const { isEditing, setIsEditing, scheduleData } = useEdit();
+
+  const handleExport = () => {
+    if (!scheduleData || scheduleData.length === 0) {
+      alert('Нет данных для экспорта');
+      return;
+    }
+    
+    const filename = `Расписание.xlsx`;
+    // const filename = `Расписание_${new Date().toISOString().split('T')[0]}.xlsx`;
+    
+    try {
+      const success = exportToExcel(scheduleData, filename);
+      
+      if (success) {
+        console.log('Экспорт успешно завершен');
+      } else {
+        alert('Ошибка при экспорте. Проверьте консоль для деталей.');
+      }
+    } catch (error) {
+      console.error('Ошибка при экспорте:', error);
+      alert('Произошла ошибка при экспорте: ' + error.message);
+    }
+  };
 
   const editItems = [
     { id: "search", name: "Поиск", icon: searchIcon, action: () => console.log("Поиск") },
@@ -17,7 +42,12 @@ function AddMenu() {
       action: () => setIsEditing((prev) => !prev),
     },
     { id: "add", name: "Добавить", icon: addIcon, action: () => console.log("Добавить элемент") },
-    { id: "print", name: "Распечатать", icon: printIcon, action: () => console.log("Распечатать") },
+    { 
+      id: "print", 
+      name: "Экспорт в Excel", // Меняем название подсказки
+      icon: printIcon, 
+      action: handleExport // Меняем действие на экспорт
+    },
   ];
 
   return (

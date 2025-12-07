@@ -119,20 +119,20 @@ function TableCell({
           <div className=" w-full flex justify-between text-[11px] leading-none font-medium">
             {(!teacher || teacher.trim() === "")
               ? <div><img src={humanIcon} alt={teacher} className=" w-[0.55rem] h-[0.55rem] opacity-30"/></div>
-              : <div title={teacher}><img src={humanIcon} alt={teacher} className=" w-[0.55rem] h-[0.55rem] opacity-65 hover:opacity-100 transition-all duration-300 ease-in-out"/></div>
+              : <div title={teacher}><img src={humanIcon} alt={teacher} className=" w-[0.55rem] h-[0.55rem] opacity-70 hover:opacity-100 transition-all duration-300 ease-in-out"/></div>
             }
-            <span className=" opacity-65 hover:opacity-100 transition-all duration-300 ease-in-out">
+            <span className="opacity-70 hover:opacity-100 transition-all duration-300 ease-in-out">
               {(!audience || audience === null || audience === 0)
                 ? <i className="opacity-50">-</i>
                 : <i>{audience}к</i>
               }
             </span>
           </div>
-          <div className=" text-[1rem] font-semibold leading-none truncate w-full opacity-95 hover:opacity-100 transition-all duration-300 ease-in-out">
+          <div className="text-[1rem] font-semibold leading-none truncate w-full opacity-95 hover:opacity-100 transition-all duration-300">
             {subject && subject.trim() !== "" ? subject : <span className="opacity-50">-</span>}
           </div>
-          <div className=" w-full flex justify-between text-[11px] leading-none font-medium">
-            <span>
+          <div className="w-full flex justify-between text-[11px] leading-none font-medium">
+            <span className="opacity-70 hover:opacity-100 transition-all duration-300 ease-in-out">
               {/* Для экзамена тему не показываем вообще */}
               {type && type.toLowerCase() === "экзамен"
                 ? "" // Пустая строка для экзамена
@@ -142,7 +142,7 @@ function TableCell({
                 )
               }
             </span>
-            <span>
+            <span className="opacity-70 hover:opacity-100 transition-all duration-300 ease-in-out">
               {type && type.trim() !== "" ? type : <span className="opacity-50">-</span>}
             </span>
           </div>
