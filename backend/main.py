@@ -1,3 +1,5 @@
-import repository.database
+# main.py
+from repository import database
 
-repository.database.DatabaseCreator().init_database()
+dbCreator = database.DatabaseCreator()
+dbCreator.init_database()
