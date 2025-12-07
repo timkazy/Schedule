@@ -10,9 +10,7 @@ function Table({
   platoonId,
 }) {
   return (
-    // Experimental
-    <div className={`flex flex-col items-center ${isEditing ? "hover:scale-[101%] transition-transform ease-in-out duration-300" : ""}`}>
-    {/* <div className="flex flex-col items-center"> */}
+    <div className="flex flex-col items-center">
       <div className="relative w-full max-w-6xl flex overflow-hidden rounded-lg">
         <div className="sticky left-0 bg-white z-10">
           <TableInfo
