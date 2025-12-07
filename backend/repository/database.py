@@ -9,26 +9,154 @@ from dotenv import load_dotenv
 from .models.subjects import *
 from .models.officers import *
 
+load_dotenv('config.env')
+
+databases_path = os.getenv('DATABASES_PATH')
+db_path = os.getenv('DATABASES_PATH') + '/' + os.getenv('DATABASE_NAME')
+if not os.path.exists(databases_path):
+    os.makedirs(databases_path)
+
+conn: typing.Optional[sqlite3.Connection] = sqlite3.connect(db_path)
+
 class DatabaseCreator:
     def __init__(self):
-        load_dotenv('config.env')
+        pass
 
-        # Get db connection
-        self.databases_path = os.getenv('DATABASES_PATH')
-        self.db_path = os.getenv('DATABASES_PATH') + '/' + os.getenv('DATABASE_NAME')
-        if not os.path.exists(self.databases_path):
-            os.makedirs(self.databases_path)
+    def create_tables(self):
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS lesson_types (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE
+            );""")
 
-        self.conn: typing.Optional[sqlite3.Connection] = None
-        
-        # Set class attributes
-        self.squad_types = [
-            (1, 'Солдаты запаса'),
-            (2, 'Офицеры запаса'),
-            (3, 'Офицеры кадра')
-        ]
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS holidays (
+                day TEXT PRIMARY KEY
+            );""")
 
-        self.subject_types = [
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS departments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE
+            );""")
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS audiences (
+                number INTEGER PRIMARY KEY
+            );""")
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS squad_types (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                type TEXT NOT NULL,
+                course INTEGER NOT NULL,
+                UNIQUE (type, course)
+            );""")
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS squads (
+                number TEXT PRIMARY KEY,
+                department_id INTEGER NOT NULL,
+                squad_type_id INTEGER NOT NULL,
+                day INTEGER NOT NULL,
+
+                FOREIGN KEY (department_id) REFERENCES departments(id) ON UPDATE CASCADE,
+                FOREIGN KEY (squad_type_id) REFERENCES squad_types(id) ON UPDATE CASCADE
+            );""")
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS officers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                first_name TEXT NOT NULL,
+                second_name TEXT NOT NULL,
+                surname TEXT NOT NULL,
+                UNIQUE(first_name, second_name, surname)
+            );""")
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS subjects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE
+            );""")
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS subject_loads (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subject_id INTEGER NOT NULL,
+                department_id INTEGER NOT NULL,
+                squad_type_id INTEGER NOT NULL,
+                semester BOOLEAN NOT NULL,
+
+                UNIQUE(subject_id, squad_type_id, department_id, semester),
+                FOREIGN KEY (subject_id) REFERENCES subjects(id) ON UPDATE CASCADE,
+                FOREIGN KEY (squad_type_id) REFERENCES squad_types(id) ON UPDATE CASCADE,
+                FOREIGN KEY (department_id) REFERENCES departments(id) ON UPDATE CASCADE
+            );""")
+
+        # officers - массив аудиторий, представленный в виде строки с разделяющим элементом /
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS squad_subject_loads (
+                subject_load_id INTEGER NOT NULL,
+                squad TEXT NOT NULL,
+                officers TEXT NOT NULL,
+
+                PRIMARY KEY(subject_load_id, squad)
+                FOREIGN KEY (squad) REFERENCES squads(number) ON UPDATE CASCADE,
+                FOREIGN KEY (subject_load_id) REFERENCES subject_loads(id) ON UPDATE CASCADE
+            );""")
+
+        # audiences - массив аудиторий, представленный в виде строки с разделяющим элементом /
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS subject_hours_load_count (
+                subject_load_id INTEGER NOT NULL,
+                lesson_type_id INTEGER NOT NULL,
+                hours_count INTEGER NOT NULL,
+                audiences TEXT NOT NULL,
+
+                PRIMARY KEY (subject_load_id, lesson_type_id),
+                FOREIGN KEY (subject_load_id) REFERENCES subject_loads(id) ON UPDATE CASCADE,
+                FOREIGN KEY (lesson_type_id) REFERENCES lesson_types(id) ON UPDATE CASCADE
+            );""")
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS themes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subject_load_id INTEGER NOT NULL,
+                lesson_type_id INTEGER NOT NULL,
+                topic INTEGER NOT NULL,
+                subtopic INTEGER NOT NULL,
+                hours_count INTEGER NOT NULL,
+                topic_name TEXT,
+                subtopic_name TEXT,
+                          
+                UNIQUE(subject_load_id, topic, subtopic),
+                FOREIGN KEY (subject_load_id) REFERENCES subject_loads(id) ON UPDATE CASCADE,
+                FOREIGN KEY (lesson_type_id) REFERENCES lesson_types(id) ON UPDATE CASCADE
+            );""")
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS lessons (
+                id INTEGER PRIMARY KEY,
+                squad TEXT NOT NULL,
+                theme_id INTEGER NOT NULL,
+                officer_id INTEGER NOT NULL,
+                subject_load_id INTEGER NOT NULL,
+                date DATE NOT NULL,
+                sequence_number INTEGER NOT NULL,
+
+                UNIQUE(squad, date, sequence_number),         
+                FOREIGN KEY (squad) REFERENCES squads(number) ON UPDATE CASCADE,
+                FOREIGN KEY (theme_id) REFERENCES themes(id) ON UPDATE CASCADE,
+                FOREIGN KEY (officer_id) REFERENCES officers(id) ON UPDATE CASCADE,
+                FOREIGN KEY (subject_load_id) REFERENCES subject_loads(id) ON UPDATE CASCADE
+            );""")
+
+    def init_database(self):
+        self.create_tables()
+
+class DatabaseInitializer:
+    def __init__(self):
+        self.lesson_types = [
             (1, 'Лекционное занятие'),
             (2, 'Практическое занятие'),
             (3, 'Групповое занятие'),
@@ -36,150 +164,62 @@ class DatabaseCreator:
             (5, 'Самостоятельная работа студентов')
         ]
 
-        self.lesson_times = [
-            (1, '8.30-10.05'),
-            (2, '10.15-11.50'),
-            (3, '12.30-14.05'),
-            (4, '14.15-15.30')
+        self.departments = [
+            (1, 'Кафедра СД'),
+            (2, 'Кафедра АО и РЭО'),
+            (3, 'Кафедра ОВП')
         ]
 
-    def create_tables(self):
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS audiences (
-                number INTEGER PRIMARY KEY
-            );""")
-        
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS officers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                fio TEXT NOT NULL UNIQUE,
-                rank TEXT NOT NULL
-            );""")
-        
-
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS squad_types (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL UNIQUE
-            );""")
-
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS squads (
-                number TEXT PRIMARY KEY,
-                day TEXT NOT NULL,
-                type_id INTEGER REFERENCES squad_types(id) ON UPDATE CASCADE,
-                persons_count INTEGER,
-                responsible_officer_id INTEGER REFERENCES officers(id) ON UPDATE CASCADE
-            );""")
-
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS subject_types (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL UNIQUE
-            );""")
-
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS subjects (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                semester INTEGER NOT NULL,
-                hours_count INTEGER NOT NULL,
-                squad_number TEXT REFERENCES squads(number) ON UPDATE CASCADE NOT NULL,
-                officer_id INTEGER REFERENCES officers(id) ON UPDATE CASCADE NOT NULL,
-                type_id INTEGER REFERENCES subject_types(id) ON UPDATE CASCADE NOT NULL,
-                UNIQUE(name, semester, squad_number, type_id)
-            );""")
-
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS lesson_time (
-                id INTEGER PRIMARY KEY,
-                time TEXT NOT NULL UNIQUE
-            );""")
-
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS lessons (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                subject_id INTEGER REFERENCES subjects(id) ON UPDATE CASCADE NOT NULL,
-                time_id INTEGER REFERENCES lesson_time(id) ON UPDATE CASCADE NOT NULL,
-                audience_number INTEGER REFERENCES audiences(number) ON UPDATE CASCADE NOT NULL,
-                date TIMESTAMP NOT NULL,
-                UNIQUE(subject_id, time_id, date)
-            );""")
-
-    def fill_initial_data(self):
-        self.conn.executemany("INSERT INTO squad_types(id, name) VALUES((?), (?)) ON CONFLICT DO NOTHING", self.squad_types)
-        self.conn.executemany("INSERT INTO subject_types(id, name) VALUES((?), (?)) ON CONFLICT DO NOTHING", self.subject_types)
-        self.conn.executemany("INSERT INTO lesson_time(id, time) VALUES((?), (?)) ON CONFLICT DO NOTHING", self.lesson_times)
-        self.conn.commit()
-
-    def fill_workloading(self, filename):
-        filepath = './' + filename
-        if not os.path.exists(filepath):
-            print(f"Error: cannot get workloading file: {filename}")
-            return None
-
-        skip_disciplines = [
-            'ИТОГО'
+        self.squad_types = [
+            (1, 'Офицеры запаса', 2),
+            (2, 'Офицеры запаса', 3),
+            (3, 'Офицеры запаса', 4),
+            (4, 'Офицеры кадра', 1),
+            (5, 'Офицеры кадра', 2),
+            (6, 'Офицеры кадра', 3),
+            (7, 'Офицеры кадра', 4),
+            (8, 'Солдаты запаса', 2),
+            (9, 'Солдаты запаса', 3),
         ]
 
-        officer_description = ''
-        current_subject_name = ''
-        squad_number = ''
+        self.officers = [
+            (1, 'Дмитрий', 'Орлов', 'Валерьевич'),
+            (2, 'Алексей', 'Овчинников', 'Владимирович'),
+            (3, 'Ситдиков', 'Венер', 'Мунирович'),
+            (4, 'Саяхов', 'Альберт', 'Рауфович'),
+            (5, 'Оглобличев', 'Максим', 'Алексеевич'),
+            (6, 'Ахмедянов', 'Сергей', 'Александрович'),
+            (7, 'Корнилов', 'Игорь', 'Владимирович'),
+            (8, 'Трофимов', 'Виталий', 'Анатольевич'),
+            (9, 'Яхин', 'Азат', 'Варисович'),
+            (10, 'Храмченко', 'Руслан', 'Иванович'),
 
-        df = pandas.read_excel(filepath, skiprows=7, usecols='A,B,C,D,E:J,N:S')
+            (11, 'Сергеев', 'Алексей', 'Петрович'),
+            (12, 'Шартдинов', 'Айдар', 'Шайхлисламович'),
+            (13, 'Алказ', 'Вадим', 'Александрович'),
+            (14, 'Ступин', 'Евгений', 'Олегович'),
+            (15, 'Загиров', 'Наиль', 'Абдрахманович'),
+            (16, 'Кабиров', 'Ильнур', 'Равилевич'),
+            (17, 'Ворошилов', 'Сергей', 'Иванович'),
+            (18, 'Шиверских', 'Антон', 'Сергеевич'),
+            (19, 'Чернявский', 'Михаил', 'Анатольевич '),
 
-        for index, line in df.iterrows():
-            row = list(line.values)
+            (20, 'Веледов', 'Магир', 'Идриснаби'),
+            (21, 'Рзаев', 'Дмитрий', 'Олегович'),
+            (22, 'Садыков', 'Азамат', 'Камилевич'),
+            (23, 'Селуянов', 'Андрей', 'Александрович'),
+            (24, 'Мустафин', 'Марсель', 'Рафитович'),
+            (25, 'Воробьев', 'Николай', 'Александрович'),
+            (26, 'Файзуллин', 'Рамиль', 'Равильевич')
+        ]
 
-            if pandas.isna(row[1]) == False:
-                officer_description = row[1].split()
-            if all(pandas.isna(x) for x in row):
-                continue
-            if row[2] in skip_disciplines:
-                continue
-            if str(officer_description).lower().endswith('вакант'):
-                continue
+        self.audiences = [
+            (208, ), (210, ), (227, ), (305, ), (110, )
+        ]
 
-            rank = officer_description[-3]
-            fio = ' '.join(officer_description[-2:])
-            officer_id = Officer().create_officer(fio, rank).id
-
-            current_subject_name = row[2]        
-            squad_number = row[3]
-            Squad().create_squad(squad_number, 'Undefined')
-
-            os_lec = row[4] != None if row[3] else 0
-            os_sem = row[5] != None if row[4] else 0
-            os_grp = row[6] != None if row[5] else 0
-            os_prk = row[7] != None if row[6] else 0
-            os_srs = row[9] != None if row[8] else 0
-
-            sp_lec = row[10] != None if row[9] else 0
-            sp_sem = row[11] != None if row[10] else 0
-            sp_grp = row[12] != None if row[11] else 0
-            sp_prk = row[13] != None if row[12] else 0
-            sp_srs = row[15] != None if row[14] else 0
-
-            Subject().create_subjects([
-                { 'name': current_subject_name, 'semester': 0, 'hours_count': os_lec, 'squad_number': squad_number, 'officer_id': officer_id, 'type_id': 1 },
-                { 'name': current_subject_name, 'semester': 0, 'hours_count': os_sem, 'squad_number': squad_number, 'officer_id': officer_id, 'type_id': 2 },
-                { 'name': current_subject_name, 'semester': 0, 'hours_count': os_grp, 'squad_number': squad_number, 'officer_id': officer_id, 'type_id': 3 },
-                { 'name': current_subject_name, 'semester': 0, 'hours_count': os_prk, 'squad_number': squad_number, 'officer_id': officer_id, 'type_id': 4 },
-                { 'name': current_subject_name, 'semester': 0, 'hours_count': os_srs, 'squad_number': squad_number, 'officer_id': officer_id, 'type_id': 5 },
-
-                { 'name': current_subject_name, 'semester': 1, 'hours_count': sp_lec, 'squad_number': squad_number, 'officer_id': officer_id, 'type_id': 1 },
-                { 'name': current_subject_name, 'semester': 1, 'hours_count': sp_sem, 'squad_number': squad_number, 'officer_id': officer_id, 'type_id': 2 },
-                { 'name': current_subject_name, 'semester': 1, 'hours_count': sp_grp, 'squad_number': squad_number, 'officer_id': officer_id, 'type_id': 3 },
-                { 'name': current_subject_name, 'semester': 1, 'hours_count': sp_prk, 'squad_number': squad_number, 'officer_id': officer_id, 'type_id': 4 },
-                { 'name': current_subject_name, 'semester': 1, 'hours_count': sp_srs, 'squad_number': squad_number, 'officer_id': officer_id, 'type_id': 5 },
-            ])
-
-    def init_database(self):
-        self.conn = sqlite3.connect(self.db_path)
-
-        self.create_tables()
-        self.fill_initial_data()
-        self.fill_workloading('workloading.xlsx')
-
-        if self.conn:
-            self.conn.close()
+    def fill_data(self):
+        conn.executemany("INSERT INTO lesson_types(id, name) VALUES((?), (?)) ON CONFLICT DO NOTHING", self.lesson_types)
+        conn.executemany("INSERT INTO squad_types(id, type, course) VALUES((?), (?), (?)) ON CONFLICT DO NOTHING", self.squad_types)
+        conn.executemany("INSERT INTO officers(id, first_name, second_name, surname) VALUES((?), (?), (?), (?)) ON CONFLICT DO NOTHING", self.officers)
+        conn.executemany("INSERT INTO audiences(number) VALUES((?)) ON CONFLICT DO NOTHING", self.audiences)
+        conn.commit()
