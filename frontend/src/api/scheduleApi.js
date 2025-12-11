@@ -1,52 +1,72 @@
-// src/api/scheduleApi.js
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = 'http://localhost:8000';
 
 export const scheduleApi = {
-  // Получить предметы для взвода
-  async getSubjects(platoonId) {
-    const response = await fetch(`${API_BASE}/subjects?platoonId=${platoonId}`);
-    return response.json();
-  },
-
-  // Получить темы для предмета и типа занятия
-  async getTopics(subjectId, lessonType = null) {
-    const params = new URLSearchParams({ subjectId });
-    if (lessonType) params.append('lessonType', lessonType);
-    
-    const response = await fetch(`${API_BASE}/topics?${params}`);
-    return response.json();
-  },
-
-  // Получить типы занятий для предмета
-  async getLessonTypes(subjectId) {
-    const response = await fetch(`${API_BASE}/lesson-types?subjectId=${subjectId}`);
-    return response.json();
-  },
-
-  // Получить аудитории для предмета и типа
-  async getAudiences(subjectId, lessonType = null) {
-    const params = new URLSearchParams({ subjectId });
-    if (lessonType) params.append('lessonType', lessonType);
-    
-    const response = await fetch(`${API_BASE}/audiences?${params}`);
-    return response.json();
-  },
-
-  // Получить преподавателей (с параметрами)
-  async getTeachers(platoonId = null, subjectId = null) {
-    const params = new URLSearchParams();
-    if (platoonId) params.append('platoonId', platoonId);
-    if (subjectId) params.append('subjectId', subjectId);
-    
-    const url = params.toString() 
-      ? `${API_BASE}/teachers?${params}`
-      : `${API_BASE}/teachers`;
-    
+  async getSubjects(platoon_id) {
+    const url = platoon_id
+      ? `${API_BASE}/schedule/subjects?platoon_id=${platoon_id}`
+      : `${API_BASE}/schedule/subjects`;
     const response = await fetch(url);
     return response.json();
   },
 
-  // Сохранить изменение ячейки
+  async getTopics(subject_load_id, lesson_type = null, platoon_id = null) {
+    const params = new URLSearchParams();
+    if (subject_load_id !== undefined && subject_load_id !== null && subject_load_id !== '') {
+      params.append('subject_load_id', subject_load_id);
+    }
+    if (lesson_type) params.append('lesson_type', lesson_type);
+    if (platoon_id !== undefined && platoon_id !== null && platoon_id !== '') {
+      params.append('platoon_id', platoon_id);
+    }
+
+    const url = `${API_BASE}/schedule/topics${params.toString() ? `?${params}` : ''}`;
+    const response = await fetch(url);
+    return response.json();
+  },
+
+  async getLessonTypes(subject_load_id, platoon_id = null) {
+    const params = new URLSearchParams();
+    if (subject_load_id !== undefined && subject_load_id !== null && subject_load_id !== '') {
+      params.append('subject_load_id', subject_load_id);
+    }
+    if (platoon_id !== undefined && platoon_id !== null && platoon_id !== '') {
+      params.append('platoon_id', platoon_id);
+    }
+
+    const url = `${API_BASE}/schedule/lesson-types${params.toString() ? `?${params}` : ''}`;
+    const response = await fetch(url);
+    return response.json();
+  },
+
+  async getAudiences(subject_load_id, lesson_type = null, platoon_id = null) {
+    const params = new URLSearchParams();
+    if (subject_load_id !== undefined && subject_load_id !== null && subject_load_id !== '') {
+      params.append('subject_load_id', subject_load_id);
+    }
+    if (lesson_type) params.append('lesson_type', lesson_type);
+    if (platoon_id !== undefined && platoon_id !== null && platoon_id !== '') {
+      params.append('platoon_id', platoon_id);
+    }
+
+    const url = `${API_BASE}/schedule/audiences${params.toString() ? `?${params}` : ''}`;
+    const response = await fetch(url);
+    return response.json();
+  },
+
+  async getTeachers(platoon_id = null, subject_load_id = null) {
+    const params = new URLSearchParams();
+    if (platoon_id !== undefined && platoon_id !== null && platoon_id !== '') {
+      params.append('platoon_id', platoon_id);
+    }
+    if (subject_load_id !== undefined && subject_load_id !== null && subject_load_id !== '') {
+      params.append('subject_load_id', subject_load_id);
+    }
+
+    const url = `${API_BASE}/schedule/teachers${params.toString() ? `?${params}` : ''}`;
+    const response = await fetch(url);
+    return response.json();
+  },
+
   async saveCell(data) {
     const response = await fetch(`${API_BASE}/schedule/savecell`, {
       method: 'POST',
