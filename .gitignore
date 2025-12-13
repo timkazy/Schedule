@@ -3,6 +3,7 @@ backend/*pycache*/
 backend/repository/*pycache*
 backend/repository/models/*pycache*
 backend/http/*pycache*
+backend/schedule.db
 
 venv/
 databases/*

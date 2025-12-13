@@ -988,6 +988,929 @@ def add_platoon(data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка добавления взвода: {str(e)}")
 
 
+# ============================================================================
+# ДИСЦИПЛИНЫ (НАГРУЗКИ)
+# ============================================================================
+
+@app.get("/disciplines/subject-loads")
+def get_subject_loads():
+    """
+    Получить все нагрузки
+    """
+    try:
+        print("🔄 Получение всех нагрузок")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                sl.id,
+                s.name as subject_name,
+                d.name as department_name,
+                st.type,
+                st.course,
+                sl.semester
+            FROM subject_loads sl
+            JOIN subjects s ON sl.subject_id = s.id
+            JOIN departments d ON sl.department_id = d.id
+            JOIN squad_types st ON sl.squad_type_id = st.id
+            ORDER BY s.name, st.course, sl.semester
+        """)
+        
+        loads = cursor.fetchall()
+        conn.close()
+        
+        result = [dict(row) for row in loads]
+        print(f"✅ Найдено нагрузок: {len(result)}")
+        return result
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения нагрузок: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения нагрузок: {str(e)}")
+
+@app.get("/disciplines/subject-loads/{subject_load_id}")
+def get_subject_load_details(subject_load_id: int):
+    """
+    Получить детальную информацию о нагрузке
+    """
+    try:
+        print(f"🔄 Получение деталей нагрузки ID={subject_load_id}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Основная информация
+        cursor.execute("""
+            SELECT 
+                sl.id,
+                sl.subject_id,
+                sl.department_id,
+                sl.squad_type_id,
+                sl.semester,
+                s.name as subject_name,
+                d.name as department_name,
+                st.type,
+                st.course
+            FROM subject_loads sl
+            JOIN subjects s ON sl.subject_id = s.id
+            JOIN departments d ON sl.department_id = d.id
+            JOIN squad_types st ON sl.squad_type_id = st.id
+            WHERE sl.id = ?
+        """, (subject_load_id,))
+        
+        load = cursor.fetchone()
+        if not load:
+            raise HTTPException(status_code=404, detail="Нагрузка не найдена")
+        
+        # Привязанные взводы
+        cursor.execute("""
+            SELECT 
+                ssl.squad as squad_number,
+                d.name as department_name,
+                ssl.officers
+            FROM squad_subject_loads ssl
+            JOIN squads sq ON ssl.squad = sq.number
+            JOIN departments d ON sq.department_id = d.id
+            WHERE ssl.subject_load_id = ?
+        """, (subject_load_id,))
+        
+        squads_rows = cursor.fetchall()
+        squads = []
+        for row in squads_rows:
+            officer_ids = []
+            officers = []
+            if row["officers"]:
+                officer_ids = [int(id.strip()) for id in row["officers"].split("/") if id.strip()]
+                
+                if officer_ids:
+                    placeholders = ','.join('?' * len(officer_ids))
+                    cursor.execute(f"""
+                        SELECT id, first_name, second_name, surname
+                        FROM officers
+                        WHERE id IN ({placeholders})
+                    """, officer_ids)
+                    officers = [dict(officer) for officer in cursor.fetchall()]
+            
+            squads.append({
+                "squad_number": row["squad_number"],
+                "department_name": row["department_name"],
+                "officer_ids": officer_ids,
+                "officers": officers
+            })
+        
+        # Часы нагрузки
+        cursor.execute("""
+            SELECT 
+                shlc.lesson_type_id,
+                lt.name as lesson_type_name,
+                shlc.hours_count,
+                shlc.audiences
+            FROM subject_hours_load_count shlc
+            JOIN lesson_types lt ON shlc.lesson_type_id = lt.id
+            WHERE shlc.subject_load_id = ?
+        """, (subject_load_id,))
+        
+        hours_rows = cursor.fetchall()
+        hours_load = []
+        for row in hours_rows:
+            audiences = [a.strip() for a in row["audiences"].split("/")] if row["audiences"] else []
+            hours_load.append({
+                "lesson_type_id": row["lesson_type_id"],
+                "lesson_type_name": row["lesson_type_name"],
+                "hours_count": row["hours_count"],
+                "audiences": audiences
+            })
+        
+        # Темы
+        cursor.execute("""
+            SELECT 
+                t.id,
+                t.lesson_type_id,
+                lt.name as lesson_type_name,
+                t.topic,
+                t.subtopic,
+                t.hours_count,
+                t.topic_name,
+                t.subtopic_name
+            FROM themes t
+            JOIN lesson_types lt ON t.lesson_type_id = lt.id
+            WHERE t.subject_load_id = ?
+            ORDER BY t.topic, t.subtopic
+        """, (subject_load_id,))
+        
+        themes = [dict(row) for row in cursor.fetchall()]
+        
+        conn.close()
+        
+        result = {
+            **dict(load),
+            "squads": squads,
+            "hours_load": hours_load,
+            "themes": themes
+        }
+        
+        print(f"✅ Данные нагрузки загружены")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка получения деталей нагрузки: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения деталей нагрузки: {str(e)}")
+
+@app.post("/disciplines/subject-loads")
+def add_subject_load(data: dict):
+    """
+    Добавить новую нагрузку
+    """
+    try:
+        print(f"📦 Добавление новой нагрузки: {data}")
+        
+        subject_id = data.get("subject_id")
+        department_id = data.get("department_id")
+        squad_type_id = data.get("squad_type_id")
+        semester = data.get("semester", 0)
+        
+        if not all([subject_id, department_id, squad_type_id]):
+            raise HTTPException(status_code=400, detail="Не указаны обязательные поля")
+        
+        # Проверка уникальности
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id FROM subject_loads
+            WHERE subject_id = ? AND department_id = ? AND squad_type_id = ? AND semester = ?
+        """, (subject_id, department_id, squad_type_id, semester))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Такая нагрузка уже существует")
+        
+        # Проверка существования предмета
+        cursor.execute("SELECT id FROM subjects WHERE id = ?", (subject_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Предмет не найден")
+        
+        # Проверка существования кафедры
+        cursor.execute("SELECT id FROM departments WHERE id = ?", (department_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Кафедра не найден")
+        
+        # Проверка существования типа взвода
+        cursor.execute("SELECT id FROM squad_types WHERE id = ?", (squad_type_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Тип взвода не найден")
+        
+        # Добавление нагрузки
+        cursor.execute("""
+            INSERT INTO subject_loads (subject_id, department_id, squad_type_id, semester)
+            VALUES (?, ?, ?, ?)
+        """, (subject_id, department_id, squad_type_id, semester))
+        
+        load_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Нагрузка добавлена, ID={load_id}")
+        return {"success": True, "message": "Нагрузка добавлена", "id": load_id}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка добавления нагрузки: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления нагрузки: {str(e)}")
+
+@app.put("/disciplines/subject-loads/{subject_load_id}")
+def update_subject_load(subject_load_id: int, data: dict):
+    """
+    Обновить нагрузку
+    """
+    try:
+        print(f"🔄 Обновление нагрузки ID={subject_load_id}: {data}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования нагрузки
+        cursor.execute("SELECT id FROM subject_loads WHERE id = ?", (subject_load_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Нагрузка не найдена")
+        
+        updates = []
+        params = []
+        
+        if "subject_id" in data:
+            cursor.execute("SELECT id FROM subjects WHERE id = ?", (data["subject_id"],))
+            if cursor.fetchone():
+                updates.append("subject_id = ?")
+                params.append(data["subject_id"])
+            else:
+                raise HTTPException(status_code=400, detail="Предмет не найден")
+        
+        if "department_id" in data:
+            cursor.execute("SELECT id FROM departments WHERE id = ?", (data["department_id"],))
+            if cursor.fetchone():
+                updates.append("department_id = ?")
+                params.append(data["department_id"])
+            else:
+                raise HTTPException(status_code=400, detail="Кафедра не найдена")
+        
+        if "squad_type_id" in data:
+            cursor.execute("SELECT id FROM squad_types WHERE id = ?", (data["squad_type_id"],))
+            if cursor.fetchone():
+                updates.append("squad_type_id = ?")
+                params.append(data["squad_type_id"])
+            else:
+                raise HTTPException(status_code=400, detail="Тип взвода не найден")
+        
+        if "semester" in data:
+            updates.append("semester = ?")
+            params.append(data["semester"])
+        
+        if updates:
+            # Проверка уникальности после обновления
+            if "subject_id" in data or "department_id" in data or "squad_type_id" in data or "semester" in data:
+                cursor.execute("""
+                    SELECT id FROM subject_loads
+                    WHERE subject_id = ? AND department_id = ? AND squad_type_id = ? AND semester = ?
+                    AND id != ?
+                """, (
+                    data.get("subject_id") or (cursor.execute("SELECT subject_id FROM subject_loads WHERE id = ?", (subject_load_id,))).fetchone()[0],
+                    data.get("department_id") or (cursor.execute("SELECT department_id FROM subject_loads WHERE id = ?", (subject_load_id,))).fetchone()[0],
+                    data.get("squad_type_id") or (cursor.execute("SELECT squad_type_id FROM subject_loads WHERE id = ?", (subject_load_id,))).fetchone()[0],
+                    data.get("semester") or (cursor.execute("SELECT semester FROM subject_loads WHERE id = ?", (subject_load_id,))).fetchone()[0],
+                    subject_load_id
+                ))
+                
+                if cursor.fetchone():
+                    raise HTTPException(status_code=400, detail="Такая нагрузка уже существует")
+            
+            params.append(subject_load_id)
+            query = f"UPDATE subject_loads SET {', '.join(updates)} WHERE id = ?"
+            cursor.execute(query, params)
+            conn.commit()
+        
+        conn.close()
+        return {"success": True, "message": "Нагрузка обновлена"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка обновления нагрузки: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления нагрузки: {str(e)}")
+
+@app.delete("/disciplines/subject-loads/{subject_load_id}")
+def delete_subject_load(subject_load_id: int):
+    """
+    Удалить нагрузку
+    """
+    try:
+        print(f"🗑️ Удаление нагрузки ID={subject_load_id}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования нагрузки
+        cursor.execute("SELECT id FROM subject_loads WHERE id = ?", (subject_load_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Нагрузка не найдена")
+        
+        # Удаление связанных данных
+        conn.execute("BEGIN TRANSACTION")
+        try:
+            # Удаляем темы
+            cursor.execute("DELETE FROM themes WHERE subject_load_id = ?", (subject_load_id,))
+            
+            # Удаляем часы нагрузки
+            cursor.execute("DELETE FROM subject_hours_load_count WHERE subject_load_id = ?", (subject_load_id,))
+            
+            # Удаляем привязки к взводам
+            cursor.execute("DELETE FROM squad_subject_loads WHERE subject_load_id = ?", (subject_load_id,))
+            
+            # Удаляем уроки, связанные с этой нагрузкой
+            cursor.execute("DELETE FROM lessons WHERE subject_load_id = ?", (subject_load_id,))
+            
+            # Удаляем саму нагрузку
+            cursor.execute("DELETE FROM subject_loads WHERE id = ?", (subject_load_id,))
+            
+            conn.commit()
+            
+        except Exception as e:
+            conn.rollback()
+            raise
+        
+        conn.close()
+        return {"success": True, "message": "Нагрузка удалена"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка удаления нагрузки: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления нагрузки: {str(e)}")
+
+# Списки для форм
+@app.get("/disciplines/subjects")
+def get_subjects_list():
+    """Получить все предметы"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name FROM subjects ORDER BY name")
+        subjects = [{"id": row["id"], "name": row["name"]} for row in cursor.fetchall()]
+        conn.close()
+        return subjects
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения предметов: {str(e)}")
+
+@app.get("/disciplines/departments")
+def get_departments_list():
+    """Получить все кафедры"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name FROM departments ORDER BY name")
+        departments = [{"id": row["id"], "name": row["name"]} for row in cursor.fetchall()]
+        conn.close()
+        return departments
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения кафедр: {str(e)}")
+
+@app.get("/disciplines/squad-types")
+def get_squad_types_list():
+    """Получить все типы взводов"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, type, course FROM squad_types ORDER BY type, course")
+        squad_types = [{"id": row["id"], "type": row["type"], "course": row["course"]} for row in cursor.fetchall()]
+        conn.close()
+        return squad_types
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения типов взводов: {str(e)}")
+
+@app.get("/disciplines/lesson-types")
+def get_lesson_types_list():
+    """Получить все типы занятий"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name FROM lesson_types ORDER BY name")
+        lesson_types = [{"id": row["id"], "name": row["name"]} for row in cursor.fetchall()]
+        conn.close()
+        return lesson_types
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения типов занятий: {str(e)}")
+
+@app.get("/disciplines/officers")
+def get_officers_list():
+    """Получить всех преподавателей"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, first_name, second_name, surname FROM officers ORDER BY surname, first_name")
+        officers = [{"id": row["id"], "first_name": row["first_name"], "second_name": row["second_name"], "surname": row["surname"]} for row in cursor.fetchall()]
+        conn.close()
+        return officers
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения преподавателей: {str(e)}")
+
+@app.get("/disciplines/audiences")
+def get_audiences_list():
+    """Получить все аудитории"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT number FROM audiences ORDER BY number")
+        audiences = [{"id": row["number"], "number": row["number"]} for row in cursor.fetchall()]
+        conn.close()
+        return audiences
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения аудиторий: {str(e)}")
+
+# Работа с привязанными взводами
+@app.get("/disciplines/available-squads")
+def get_available_squads(subject_load_id: int = Query(...)):
+    """Получить доступные для привязки взводы"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Получаем тип взвода из нагрузки
+        cursor.execute("""
+            SELECT st.id as squad_type_id
+            FROM subject_loads sl
+            JOIN squad_types st ON sl.squad_type_id = st.id
+            WHERE sl.id = ?
+        """, (subject_load_id,))
+        
+        load = cursor.fetchone()
+        if not load:
+            raise HTTPException(status_code=404, detail="Нагрузка не найдена")
+        
+        # Получаем взводы с таким же типом, которые еще не привязаны к этой нагрузке
+        cursor.execute("""
+            SELECT 
+                sq.number,
+                d.name as department_name
+            FROM squads sq
+            JOIN departments d ON sq.department_id = d.id
+            WHERE sq.squad_type_id = ?
+            AND sq.number NOT IN (
+                SELECT squad FROM squad_subject_loads WHERE subject_load_id = ?
+            )
+            ORDER BY sq.number
+        """, (load["squad_type_id"], subject_load_id))
+        
+        squads = [{"number": row["number"], "department_name": row["department_name"]} for row in cursor.fetchall()]
+        conn.close()
+        
+        return squads
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения доступных взводов: {str(e)}")
+
+@app.post("/disciplines/subject-loads/{subject_load_id}/squads")
+def add_squad_to_subject_load(subject_load_id: int, data: dict):
+    """Привязать взвод к нагрузке"""
+    try:
+        print(f"🔗 Привязка взвода к нагрузке {subject_load_id}: {data}")
+        
+        squad = data.get("squad")
+        officers = data.get("officers", [])
+        
+        if not squad:
+            raise HTTPException(status_code=400, detail="Не указан взвод")
+        
+        if not officers:
+            raise HTTPException(status_code=400, detail="Не указаны преподаватели")
+        
+        # Проверка существования нагрузки
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT id FROM subject_loads WHERE id = ?", (subject_load_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Нагрузка не найдена")
+        
+        # Проверка существования взвода
+        cursor.execute("SELECT number FROM squads WHERE number = ?", (squad,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Взвод не найден")
+        
+        # Проверка, не привязан ли уже этот взвод
+        cursor.execute("SELECT squad FROM squad_subject_loads WHERE subject_load_id = ? AND squad = ?", (subject_load_id, squad))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Взвод уже привязан к этой нагрузке")
+        
+        # Проверка преподавателей
+        for officer_id in officers:
+            cursor.execute("SELECT id FROM officers WHERE id = ?", (officer_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=400, detail=f"Преподаватель с ID={officer_id} не найден")
+        
+        # Формируем строку преподавателей
+        officers_str = "/".join(str(officer_id) for officer_id in officers)
+        
+        # Добавляем привязку
+        cursor.execute("""
+            INSERT INTO squad_subject_loads (subject_load_id, squad, officers)
+            VALUES (?, ?, ?)
+        """, (subject_load_id, squad, officers_str))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Взвод привязан к нагрузке"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка привязки взвода: {str(e)}")
+
+@app.put("/disciplines/subject-loads/{subject_load_id}/squads/{squad_number}")
+def update_squad_subject_load(subject_load_id: int, squad_number: str, data: dict):
+    """Обновить привязку взвода к нагрузке"""
+    try:
+        print(f"🔄 Обновление привязки взвода {squad_number} к нагрузке {subject_load_id}")
+        
+        officers = data.get("officers", [])
+        
+        if not officers:
+            raise HTTPException(status_code=400, detail="Не указаны преподаватели")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования привязки
+        cursor.execute("""
+            SELECT squad FROM squad_subject_loads 
+            WHERE subject_load_id = ? AND squad = ?
+        """, (subject_load_id, squad_number))
+        
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Привязка не найдена")
+        
+        # Проверка преподавателей
+        for officer_id in officers:
+            cursor.execute("SELECT id FROM officers WHERE id = ?", (officer_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=400, detail=f"Преподаватель с ID={officer_id} не найден")
+        
+        # Формируем строку преподавателей
+        officers_str = "/".join(str(officer_id) for officer_id in officers)
+        
+        # Обновляем привязку
+        cursor.execute("""
+            UPDATE squad_subject_loads 
+            SET officers = ?
+            WHERE subject_load_id = ? AND squad = ?
+        """, (officers_str, subject_load_id, squad_number))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Привязка обновлена"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления привязки: {str(e)}")
+
+@app.delete("/disciplines/subject-loads/{subject_load_id}/squads/{squad_number}")
+def delete_squad_subject_load(subject_load_id: int, squad_number: str):
+    """Отвязать взвод от нагрузки"""
+    try:
+        print(f"🔓 Отвязка взвода {squad_number} от нагрузки {subject_load_id}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования привязки
+        cursor.execute("""
+            SELECT squad FROM squad_subject_loads 
+            WHERE subject_load_id = ? AND squad = ?
+        """, (subject_load_id, squad_number))
+        
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Привязка не найдена")
+        
+        # Удаляем привязку
+        cursor.execute("""
+            DELETE FROM squad_subject_loads 
+            WHERE subject_load_id = ? AND squad = ?
+        """, (subject_load_id, squad_number))
+        
+        # Удаляем уроки, связанные с этой привязкой
+        cursor.execute("""
+            DELETE FROM lessons 
+            WHERE subject_load_id = ? AND squad = ?
+        """, (subject_load_id, squad_number))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Взвод отвязан от нагрузки"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка отвязки взвода: {str(e)}")
+
+# Работа с часами нагрузки
+@app.post("/disciplines/subject-loads/{subject_load_id}/hours")
+def add_hours_load(subject_load_id: int, data: dict):
+    """Добавить часы нагрузки для типа занятия"""
+    try:
+        print(f"➕ Добавление часов для нагрузки {subject_load_id}: {data}")
+        
+        lesson_type_id = data.get("lesson_type_id")
+        hours_count = data.get("hours_count")
+        audiences = data.get("audiences", "")
+        
+        if not lesson_type_id or not hours_count:
+            raise HTTPException(status_code=400, detail="Не указаны обязательные поля")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования нагрузки
+        cursor.execute("SELECT id FROM subject_loads WHERE id = ?", (subject_load_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Нагрузка не найдена")
+        
+        # Проверка существования типа занятия
+        cursor.execute("SELECT id FROM lesson_types WHERE id = ?", (lesson_type_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Тип занятия не найден")
+        
+        # Проверка, не добавлены ли уже часы для этого типа
+        cursor.execute("""
+            SELECT lesson_type_id FROM subject_hours_load_count 
+            WHERE subject_load_id = ? AND lesson_type_id = ?
+        """, (subject_load_id, lesson_type_id))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Часы для этого типа занятия уже добавлены")
+        
+        # Добавляем часы
+        cursor.execute("""
+            INSERT INTO subject_hours_load_count (subject_load_id, lesson_type_id, hours_count, audiences)
+            VALUES (?, ?, ?, ?)
+        """, (subject_load_id, lesson_type_id, hours_count, audiences))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Часы добавлены"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления часов: {str(e)}")
+
+@app.put("/disciplines/subject-loads/{subject_load_id}/hours/{lesson_type_id}")
+def update_hours_load(subject_load_id: int, lesson_type_id: int, data: dict):
+    """Обновить часы нагрузки для типа занятия"""
+    try:
+        print(f"🔄 Обновление часов для нагрузки {subject_load_id}, тип {lesson_type_id}: {data}")
+        
+        hours_count = data.get("hours_count")
+        audiences = data.get("audiences", "")
+        
+        if not hours_count:
+            raise HTTPException(status_code=400, detail="Не указано количество часов")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования записи
+        cursor.execute("""
+            SELECT subject_load_id FROM subject_hours_load_count 
+            WHERE subject_load_id = ? AND lesson_type_id = ?
+        """, (subject_load_id, lesson_type_id))
+        
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Запись о часах не найдена")
+        
+        # Обновляем запись
+        cursor.execute("""
+            UPDATE subject_hours_load_count 
+            SET hours_count = ?, audiences = ?
+            WHERE subject_load_id = ? AND lesson_type_id = ?
+        """, (hours_count, audiences, subject_load_id, lesson_type_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Часы обновлены"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления часов: {str(e)}")
+
+@app.delete("/disciplines/subject-loads/{subject_load_id}/hours/{lesson_type_id}")
+def delete_hours_load(subject_load_id: int, lesson_type_id: int):
+    """Удалить часы нагрузки для типа занятия"""
+    try:
+        print(f"🗑️ Удаление часов для нагрузки {subject_load_id}, тип {lesson_type_id}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования записи
+        cursor.execute("""
+            SELECT subject_load_id FROM subject_hours_load_count 
+            WHERE subject_load_id = ? AND lesson_type_id = ?
+        """, (subject_load_id, lesson_type_id))
+        
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Запись о часах не найдена")
+        
+        # Удаляем запись
+        cursor.execute("""
+            DELETE FROM subject_hours_load_count 
+            WHERE subject_load_id = ? AND lesson_type_id = ?
+        """, (subject_load_id, lesson_type_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Часы удалены"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления часов: {str(e)}")
+
+# Работа с темами
+@app.post("/disciplines/subject-loads/{subject_load_id}/themes")
+def add_theme(subject_load_id: int, data: dict):
+    """Добавить тему для нагрузки"""
+    try:
+        print(f"➕ Добавление темы для нагрузки {subject_load_id}: {data}")
+        
+        lesson_type_id = data.get("lesson_type_id")
+        topic = data.get("topic")
+        subtopic = data.get("subtopic")
+        hours_count = data.get("hours_count")
+        topic_name = data.get("topic_name")
+        subtopic_name = data.get("subtopic_name")
+        
+        if not all([lesson_type_id, topic, subtopic, hours_count]):
+            raise HTTPException(status_code=400, detail="Не указаны обязательные поля")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования нагрузки
+        cursor.execute("SELECT id FROM subject_loads WHERE id = ?", (subject_load_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Нагрузка не найдена")
+        
+        # Проверка существования типа занятия
+        cursor.execute("SELECT id FROM lesson_types WHERE id = ?", (lesson_type_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Тип занятия не найден")
+        
+        # Проверка уникальности темы
+        cursor.execute("""
+            SELECT id FROM themes 
+            WHERE subject_load_id = ? AND topic = ? AND subtopic = ?
+        """, (subject_load_id, topic, subtopic))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Тема с таким номером уже существует")
+        
+        # Добавляем тему
+        cursor.execute("""
+            INSERT INTO themes (subject_load_id, lesson_type_id, topic, subtopic, hours_count, topic_name, subtopic_name)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (subject_load_id, lesson_type_id, topic, subtopic, hours_count, topic_name, subtopic_name))
+        
+        theme_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Тема добавлена", "id": theme_id}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления темы: {str(e)}")
+
+@app.put("/disciplines/themes/{theme_id}")
+def update_theme(theme_id: int, data: dict):
+    """Обновить тему"""
+    try:
+        print(f"🔄 Обновление темы ID={theme_id}: {data}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования темы
+        cursor.execute("SELECT id FROM themes WHERE id = ?", (theme_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Тема не найдена")
+        
+        updates = []
+        params = []
+        
+        if "lesson_type_id" in data:
+            cursor.execute("SELECT id FROM lesson_types WHERE id = ?", (data["lesson_type_id"],))
+            if cursor.fetchone():
+                updates.append("lesson_type_id = ?")
+                params.append(data["lesson_type_id"])
+            else:
+                raise HTTPException(status_code=400, detail="Тип занятия не найден")
+        
+        if "topic" in data:
+            updates.append("topic = ?")
+            params.append(data["topic"])
+        
+        if "subtopic" in data:
+            updates.append("subtopic = ?")
+            params.append(data["subtopic"])
+        
+        if "hours_count" in data:
+            updates.append("hours_count = ?")
+            params.append(data["hours_count"])
+        
+        if "topic_name" in data:
+            updates.append("topic_name = ?")
+            params.append(data["topic_name"])
+        
+        if "subtopic_name" in data:
+            updates.append("subtopic_name = ?")
+            params.append(data["subtopic_name"])
+        
+        if updates:
+            # Проверка уникальности при изменении номера темы
+            if "topic" in data or "subtopic" in data:
+                cursor.execute("SELECT subject_load_id FROM themes WHERE id = ?", (theme_id,))
+                subject_load_id = cursor.fetchone()["subject_load_id"]
+                
+                cursor.execute("""
+                    SELECT id FROM themes 
+                    WHERE subject_load_id = ? AND topic = ? AND subtopic = ? AND id != ?
+                """, (
+                    subject_load_id,
+                    data.get("topic") or (cursor.execute("SELECT topic FROM themes WHERE id = ?", (theme_id,))).fetchone()[0],
+                    data.get("subtopic") or (cursor.execute("SELECT subtopic FROM themes WHERE id = ?", (theme_id,))).fetchone()[0],
+                    theme_id
+                ))
+                
+                if cursor.fetchone():
+                    raise HTTPException(status_code=400, detail="Тема с таким номером уже существует")
+            
+            params.append(theme_id)
+            query = f"UPDATE themes SET {', '.join(updates)} WHERE id = ?"
+            cursor.execute(query, params)
+            conn.commit()
+        
+        conn.close()
+        return {"success": True, "message": "Тема обновлена"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления темы: {str(e)}")
+
+@app.delete("/disciplines/themes/{theme_id}")
+def delete_theme(theme_id: int):
+    """Удалить тему"""
+    try:
+        print(f"🗑️ Удаление темы ID={theme_id}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования темы
+        cursor.execute("SELECT id FROM themes WHERE id = ?", (theme_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Тема не найдена")
+        
+        # Удаляем тему
+        cursor.execute("DELETE FROM themes WHERE id = ?", (theme_id,))
+        
+        # Удаляем уроки, связанные с этой темой
+        cursor.execute("DELETE FROM lessons WHERE theme_id = ?", (theme_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Тема удалена"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления темы: {str(e)}")
+
+
+
 # Запуск сервера
 if __name__ == "__main__":
     import uvicorn

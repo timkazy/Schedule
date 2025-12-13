@@ -143,3 +143,156 @@ export const platoonApi = {
     return response.json();
   },
 };
+
+// ------ DISCIPLINES ------
+export const disciplineApi = {
+  // Основные методы для нагрузок
+  async getSubjectLoads() {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads`);
+    return response.json();
+  },
+
+  async getSubjectLoadDetails(subjectLoadId) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${subjectLoadId}`);
+    return response.json();
+  },
+
+  async addSubjectLoad(data) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async updateSubjectLoad(subjectLoadId, data) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${subjectLoadId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async deleteSubjectLoad(subjectLoadId) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${subjectLoadId}`, {
+      method: 'DELETE',
+    });
+    return response.json();
+  },
+
+  // Списки для форм
+  async getSubjects() {
+    const response = await fetch(`${API_BASE}/disciplines/subjects`);
+    return response.json();
+  },
+
+  async getDepartments() {
+    const response = await fetch(`${API_BASE}/disciplines/departments`);
+    return response.json();
+  },
+
+  async getSquadTypes() {
+    const response = await fetch(`${API_BASE}/disciplines/squad-types`);
+    return response.json();
+  },
+
+  async getLessonTypes() {
+    const response = await fetch(`${API_BASE}/disciplines/lesson-types`);
+    return response.json();
+  },
+
+  async getOfficers() {
+    const response = await fetch(`${API_BASE}/disciplines/officers`);
+    return response.json();
+  },
+
+  async getAudiences() {
+    const response = await fetch(`${API_BASE}/disciplines/audiences`);
+    return response.json();
+  },
+
+  // Привязка взводов к нагрузке
+  async getAvailableSquads(subjectLoadId) {
+    const response = await fetch(`${API_BASE}/disciplines/available-squads?subject_load_id=${subjectLoadId}`);
+    return response.json();
+  },
+
+  async addSquadSubjectLoad(subjectLoadId, data) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${subjectLoadId}/squads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async updateSquadSubjectLoad(subjectLoadId, squadNumber, data) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${subjectLoadId}/squads/${squadNumber}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async deleteSquadSubjectLoad(subjectLoadId, squadNumber) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${subjectLoadId}/squads/${squadNumber}`, {
+      method: 'DELETE',
+    });
+    return response.json();
+  },
+
+  // Часы нагрузки
+  async addHoursLoad(subjectLoadId, data) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${subjectLoadId}/hours`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async updateHoursLoad(subjectLoadId, lessonTypeId, data) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${subjectLoadId}/hours/${lessonTypeId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async deleteHoursLoad(subjectLoadId, lessonTypeId) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${subjectLoadId}/hours/${lessonTypeId}`, {
+      method: 'DELETE',
+    });
+    return response.json();
+  },
+
+  // Темы
+  async addTheme(subjectLoadId, data) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${subjectLoadId}/themes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async updateTheme(themeId, data) {
+    const response = await fetch(`${API_BASE}/disciplines/themes/${themeId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async deleteTheme(themeId) {
+    const response = await fetch(`${API_BASE}/disciplines/themes/${themeId}`, {
+      method: 'DELETE',
+    });
+    return response.json();
+  },
+};

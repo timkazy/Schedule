@@ -3,7 +3,6 @@
         1. Создать объект DatabaseCreator
         2. Осуществить вызов метода init_database
 """
-
 import sqlite3, os, typing, pandas
 from dotenv import load_dotenv
 # from models.subjects import *
