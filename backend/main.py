@@ -589,6 +589,405 @@ def health_check():
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
 
+
+
+# ------------------------ PLATOONS ------------------------
+
+# ---------------------------------------------------------------------------
+# 🔹 GET /platoons/departments
+# ---------------------------------------------------------------------------
+@app.get("/platoons/departments")
+def get_departments():
+    """
+    Получить все кафедры
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT id, name FROM departments ORDER BY name")
+        departments = cursor.fetchall()
+        conn.close()
+        
+        return [{"id": row["id"], "name": row["name"]} for row in departments]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения кафедр: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# 🔹 GET /platoons/squad-types
+# ---------------------------------------------------------------------------
+@app.get("/platoons/squad-types")
+def get_squad_types():
+    """
+    Получить все типы взводов
+    """
+    try:
+        print("@app.get(/platoons/squad-types)")
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT id, type, course FROM squad_types ORDER BY type, course")
+        types = cursor.fetchall()
+        conn.close()
+        
+        return [{"id": row["id"], "type": row["type"], "course": row["course"]} for row in types]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения типов взводов: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# 🔹 GET /platoons
+# ---------------------------------------------------------------------------
+@app.get("/platoons")
+def get_platoons(department_id: Optional[int] = Query(None)):
+    """
+    Получить взводы (с фильтром по кафедре)
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        query = """
+            SELECT 
+                sq.number,
+                d.name as department_name
+            FROM squads sq
+            JOIN departments d ON sq.department_id = d.id
+        """
+        params = []
+        
+        if department_id:
+            query += " WHERE sq.department_id = ?"
+            params.append(department_id)
+        
+        query += " ORDER BY sq.number"
+        
+        cursor.execute(query, params)
+        platoons = cursor.fetchall()
+        conn.close()
+        
+        return [{"number": row["number"], "department_name": row["department_name"]} for row in platoons]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения взводов: {str(e)}")
+
+# ---------------------------------------------------------------------------
+# 🔹 GET /platoons/{platoon_number}
+# ---------------------------------------------------------------------------
+@app.get("/platoons/{platoon_number}")
+def get_platoon_details(platoon_number: str):
+    """
+    Получить детальную информацию о взводе
+    """
+    try:
+        print(f"🔍 Получение данных взвода: {platoon_number}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                sq.number,
+                sq.day,
+                sq.start_week,
+                sq.end_week,
+                sq.department_id,
+                d.name as department_name,
+                st.id as squad_type_id,
+                st.type,
+                st.course
+            FROM squads sq
+            JOIN departments d ON sq.department_id = d.id
+            JOIN squad_types st ON sq.squad_type_id = st.id
+            WHERE sq.number = ?
+        """, (platoon_number,))
+        
+        platoon = cursor.fetchone()
+        conn.close()
+        
+        if not platoon:
+            raise HTTPException(status_code=404, detail="Взвод не найден")
+        
+        result = dict(platoon)
+        print(f"✅ Данные взвода: {result}")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка получения данных взвода: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения данных взвода: {str(e)}")
+    
+# ---------------------------------------------------------------------------
+# 🔹 PUT /platoons/{platoon_number}
+# ---------------------------------------------------------------------------
+@app.put("/platoons/{platoon_number}")
+def update_platoon(platoon_number: str, data: dict):
+    """
+    Обновить данные взвода
+    """
+    try:
+        print(f"🔄 Обновление взвода {platoon_number}: {data}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем существование взвода
+        cursor.execute("SELECT squad_type_id FROM squads WHERE number = ?", (platoon_number,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Взвод не найден")
+        print("t1")
+
+        updates = []
+        params = []
+        
+        # Обновление типа взвода
+        if "squad_type_id" in data:
+            cursor.execute("SELECT id FROM squad_types WHERE id = ?", (data["squad_type_id"],))
+            if cursor.fetchone():
+                updates.append("squad_type_id = ?")
+                params.append(data["squad_type_id"])
+            else:
+                raise HTTPException(status_code=400, detail="Тип взвода не найден")
+        print("t2")
+        
+
+        # Обновление дня недели
+        if "day" in data:
+            if 1 <= data["day"] <= 7:
+                updates.append("day = ?")
+                params.append(data["day"])
+            else:
+                raise HTTPException(status_code=400, detail="День недели должен быть от 1 до 7")
+        print("t3")
+
+        # Обновление недели начала
+        if "start_week" in data:
+            if data["start_week"] is None:
+                updates.append("start_week = NULL")
+            elif 1 <= data["start_week"] <= 52:
+                updates.append("start_week = ?")
+                params.append(data["start_week"])
+            else:
+                raise HTTPException(status_code=400, detail="Неделя начала должна быть от 1 до 52")
+        print("t4")
+        
+
+        # Обновление недели окончания
+        if "end_week" in data:
+            if data["end_week"] is None:
+                updates.append("end_week = NULL")
+            elif 1 <= data["end_week"] <= 52:
+                updates.append("end_week = ?")
+                params.append(data["end_week"])
+            else:
+                raise HTTPException(status_code=400, detail="Неделя окончания должна быть от 1 до 52")
+        print("t5")
+
+        # Валидация: неделя начала должна быть меньше недели окончания
+        if ("start_week" in data and data["start_week"] is not None and 
+            "end_week" in data and data["end_week"] is not None and
+            data["start_week"] >= data["end_week"]):
+            raise HTTPException(status_code=400, detail="Неделя начала должна быть меньше недели окончания")
+        print("t6")
+
+        if updates:
+            params.append(platoon_number)
+            query = f"UPDATE squads SET {', '.join(updates)} WHERE number = ?"
+            print(f"📝 SQL запрос: {query}")
+            print(f"📝 Параметры: {params}")
+            
+            cursor.execute(query, params)
+            conn.commit()
+            print(f"✅ Взвод {platoon_number} обновлен")
+        
+        conn.close()
+        return {"success": True, "message": "Данные обновлены"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка обновления взвода: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления взвода: {str(e)}")
+    
+# ---------------------------------------------------------------------------
+# 🔹 POST /platoons/{platoon_number}/rename
+# ---------------------------------------------------------------------------
+@app.post("/platoons/{platoon_number}/rename")
+def rename_platoon(platoon_number: str, data: dict):
+    """
+    Переименовать взвод
+    """
+    try:
+
+        new_number = data.get("newNumber")
+        if not new_number:
+            raise HTTPException(status_code=400, detail="Не указан новый номер")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        print(new_number)
+        
+        # Проверяем существование старого взвода
+        cursor.execute("SELECT number FROM squads WHERE number = ?", (platoon_number,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Взвод не найден")
+        print(new_number)
+        
+        # Проверяем, не занят ли новый номер
+        cursor.execute("SELECT number FROM squads WHERE number = ?", (new_number,))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Взвод с таким номером уже существует")
+        print(new_number)
+        
+        # Обновляем номер во всех связанных таблицах
+        conn.execute("BEGIN TRANSACTION")
+        
+        try:
+            print("try1")
+            # 1. Обновляем squads
+            cursor.execute("UPDATE squads SET number = ? WHERE number = ?", (new_number, platoon_number))
+            print("try2")
+            
+            # 2. Обновляем squad_subject_loads
+            cursor.execute("UPDATE squad_subject_loads SET squad = ? WHERE squad = ?", (new_number, platoon_number))
+            
+            print("try3")
+            # 3. Обновляем lessons
+            cursor.execute("UPDATE lessons SET squad = ? WHERE squad = ?", (new_number, platoon_number))
+            
+            conn.commit()
+            
+        except Exception as e:
+            conn.rollback()
+            raise
+        
+        conn.close()
+        return {"success": True, "message": f"Взвод переименован в {new_number}"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка переименования: {str(e)}")
+
+# ---------------------------------------------------------------------------
+# 🔹 DELETE /platoons/{platoon_number}
+# ---------------------------------------------------------------------------
+@app.delete("/platoons/{platoon_number}")
+def delete_platoon(platoon_number: str):
+    """
+    Удалить взвод
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверяем существование взвода
+        cursor.execute("SELECT number FROM squads WHERE number = ?", (platoon_number,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Взвод не найден")
+        
+        # Удаляем связанные данные
+        conn.execute("BEGIN TRANSACTION")
+        try:
+            # 1. Удаляем уроки взвода
+            cursor.execute("DELETE FROM lessons WHERE squad = ?", (platoon_number,))
+            
+            # 2. Удаляем связи с предметами
+            cursor.execute("DELETE FROM squad_subject_loads WHERE squad = ?", (platoon_number,))
+            
+            # 3. Удаляем сам взвод
+            cursor.execute("DELETE FROM squads WHERE number = ?", (platoon_number,))
+            
+            conn.commit()
+            
+        except Exception as e:
+            conn.rollback()
+            raise
+        
+        conn.close()
+        return {"success": True, "message": "Взвод удален"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления: {str(e)}")
+
+# ---------------------------------------------------------------------------
+# 🔹 POST /platoons
+# ---------------------------------------------------------------------------
+@app.post("/platoons")
+def add_platoon(data: dict):
+    """
+    Добавить новый взвод
+    """
+    try:
+        print(f"📦 Получены данные: {data}")
+
+        number = data.get("number")
+        department_id = data.get("departmentId")
+        squad_type_id = data.get("squadTypeId")
+        day = data.get("day", 1)
+        start_week = data.get("start_week")
+        end_week = data.get("end_week")
+        
+        if not all([number, department_id, squad_type_id]):
+            raise HTTPException(status_code=400, detail="Не указаны обязательные поля")
+        
+        # Валидация недель
+        if start_week and (start_week < 1 or start_week > 52):
+            raise HTTPException(status_code=400, detail="Неделя начала должна быть от 1 до 52")
+        
+        if end_week and (end_week < 1 or end_week > 52):
+            raise HTTPException(status_code=400, detail="Неделя окончания должна быть от 1 до 52")
+        
+        if start_week and end_week and start_week >= end_week:
+            raise HTTPException(status_code=400, detail="Неделя начала должна быть меньше недели окончания")
+        print("1")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        print("2")
+        
+        # Проверяем, не существует ли уже взвод с таким номером
+        cursor.execute("SELECT number FROM squads WHERE number = ?", (number,))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Взвод с таким номером уже существует")
+        print("3")
+        
+        # Проверяем существование кафедры
+        cursor.execute("SELECT id FROM departments WHERE id = ?", (department_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Кафедра не найдена")
+        print("4")
+        
+        # Проверяем существование типа взвода
+        cursor.execute("SELECT id FROM squad_types WHERE id = ?", (squad_type_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Тип взвода не найден")
+        print("5")
+
+        # Добавляем взвод
+        cursor.execute("""
+            INSERT INTO squads (number, department_id, squad_type_id, day, start_week, end_week)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (number, department_id, squad_type_id, day, start_week, end_week))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Взвод добавлен", "number": number}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления взвода: {str(e)}")
+
+
 # Запуск сервера
 if __name__ == "__main__":
     import uvicorn

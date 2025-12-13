@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 
 load_dotenv('config.env')
 
-
 # databases_path = os.getenv('DATABASES_PATH')
 # db_path = os.getenv('DATABASES_PATH') + '/' + os.getenv('DATABASE_NAME')
 
@@ -65,6 +64,8 @@ class DatabaseCreator:
                 department_id INTEGER NOT NULL,
                 squad_type_id INTEGER NOT NULL,
                 day INTEGER NOT NULL,
+                start_week INTEGER,
+                end_week INTEGER,
 
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON UPDATE CASCADE,
                 FOREIGN KEY (squad_type_id) REFERENCES squad_types(id) ON UPDATE CASCADE
@@ -246,8 +247,8 @@ class DatabaseInitializer:
         ]
 
         self.squads = [
-            ("4342", 1, 1, 1),
-            ("4343", 1, 1, 2)
+            ("4342", 1, 1, 1, 2, 16),
+            ("4343", 1, 1, 2, 3, 17)
         ]
 
         self.subject_hours_load_count = [
@@ -314,7 +315,7 @@ class DatabaseInitializer:
 
         conn.executemany("INSERT INTO subjects(id, name) VALUES(?, ?) ON CONFLICT DO NOTHING", self.subjects)
         conn.executemany("INSERT INTO departments(id, name) VALUES(?, ?) ON CONFLICT DO NOTHING", self.departments)
-        conn.executemany("INSERT INTO squads(number, department_id, squad_type_id, day) VALUES(?, ?, ?, ?) ON CONFLICT DO NOTHING", self.squads)
+        conn.executemany("INSERT INTO squads(number, department_id, squad_type_id, day, start_week, end_week) VALUES(?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING", self.squads)
         conn.executemany("INSERT INTO subject_loads(id, subject_id, department_id, squad_type_id, semester) VALUES(?, ?, ?, ?, ?) ON CONFLICT DO NOTHING", self.subject_loads)
         conn.executemany("INSERT INTO subject_hours_load_count(subject_load_id, lesson_type_id, hours_count, audiences) VALUES(?, ?, ?, ?) ON CONFLICT DO NOTHING", self.subject_hours_load_count)
         conn.executemany("INSERT INTO squad_subject_loads(subject_load_id, squad, officers) VALUES(?, ?, ?) ON CONFLICT DO NOTHING", self.squad_subject_loads)

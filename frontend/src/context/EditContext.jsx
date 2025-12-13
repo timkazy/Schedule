@@ -1,6 +1,6 @@
 import { createContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { tablesData } from "../data/tablesData";
-import { scheduleApi } from "../api/scheduleApi";
+import { scheduleApi } from "../api/api";
 import { localDropdownData } from "../data/localDropdownData";
 import { appConfig, isLocalMode } from "../config/appConfig";
 
