@@ -405,3 +405,46 @@ export const teachersApi = {
     return response.json();
   },
 };
+
+
+export const subjectsApi = {
+  // Получить все предметы
+  async getSubjects() {
+    const response = await fetch(`${API_BASE}/subjects`);
+    return response.json();
+  },
+
+  // Получить детали предмета с нагрузками
+  async getSubjectDetails(subjectId) {
+    const response = await fetch(`${API_BASE}/subjects/${subjectId}`);
+    return response.json();
+  },
+
+  // Добавить предмет
+  async addSubject(subjectData) {
+    const response = await fetch(`${API_BASE}/subjects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(subjectData),
+    });
+    return response.json();
+  },
+
+  // Обновить предмет
+  async updateSubject(subjectId, subjectData) {
+    const response = await fetch(`${API_BASE}/subjects/${subjectId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(subjectData),
+    });
+    return response.json();
+  },
+
+  // Удалить предмет
+  async deleteSubject(subjectId) {
+    const response = await fetch(`${API_BASE}/subjects/${subjectId}`, {
+      method: 'DELETE',
+    });
+    return response.json();
+  },
+};

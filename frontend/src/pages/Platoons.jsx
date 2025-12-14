@@ -120,7 +120,7 @@ function Platoons() {
         </div>
       )}
 
-      <div className="platoons-container max-w-4xl mx-auto">
+      <div className="platoons-container max-w-6xl mx-auto">
         {/* Строка 1: Выбор кафедры */}
         <div className="control-row">
           <label className="control-label">Кафедра:</label>

@@ -2664,6 +2664,306 @@ def update_connection_officers(subject_load_id: int, squad_number: str, data: di
         print(f"❌ Ошибка обновления преподавателей: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка обновления преподавателей: {str(e)}")
 
+# ============================================================================
+# ПРЕДМЕТЫ
+# ============================================================================
+
+@app.get("/subjects")
+def get_subjects():
+    """
+    Получить все предметы
+    """
+    try:
+        print("🔄 Получение списка предметов")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                id,
+                name,
+                (SELECT COUNT(*) FROM subject_loads WHERE subject_id = subjects.id) as loads_count
+            FROM subjects
+            ORDER BY name
+        """)
+        
+        subjects = cursor.fetchall()
+        conn.close()
+        
+        result = [dict(row) for row in subjects]
+        print(f"✅ Найдено предметов: {len(result)}")
+        return result
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения предметов: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения предметов: {str(e)}")
+
+@app.get("/subjects/{subject_id}")
+def get_subject_details(subject_id: int):
+    """
+    Получить детальную информацию о предмете с нагрузками
+    """
+    try:
+        print(f"🔄 Получение деталей предмета ID={subject_id}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Основная информация о предмете
+        cursor.execute("""
+            SELECT 
+                id,
+                name
+            FROM subjects
+            WHERE id = ?
+        """, (subject_id,))
+        
+        subject = cursor.fetchone()
+        if not subject:
+            raise HTTPException(status_code=404, detail="Предмет не найден")
+        
+        # Нагрузки этого предмета
+        cursor.execute("""
+            SELECT 
+                sl.id,
+                sl.semester,
+                d.name as department_name,
+                st.type,
+                st.course
+            FROM subject_loads sl
+            JOIN departments d ON sl.department_id = d.id
+            JOIN squad_types st ON sl.squad_type_id = st.id
+            WHERE sl.subject_id = ?
+            ORDER BY d.name, st.course, sl.semester
+        """, (subject_id,))
+        
+        loads = []
+        for row in cursor.fetchall():
+            load_id = row["id"]
+            
+            # Взводы для этой нагрузки
+            cursor.execute("""
+                SELECT 
+                    ssl.squad as number,
+                    d.name as department_name
+                FROM squad_subject_loads ssl
+                JOIN squads sq ON ssl.squad = sq.number
+                JOIN departments d ON sq.department_id = d.id
+                WHERE ssl.subject_load_id = ?
+                ORDER BY ssl.squad
+            """, (load_id,))
+            
+            squads = [dict(squad) for squad in cursor.fetchall()]
+            
+            # Статистика по нагрузке
+            cursor.execute("""
+                SELECT 
+                    COUNT(DISTINCT t.id) as themes_count,
+                    COUNT(DISTINCT shlc.lesson_type_id) as lesson_types_count,
+                    SUM(shlc.hours_count) as total_hours
+                FROM subject_loads sl
+                LEFT JOIN themes t ON sl.id = t.subject_load_id
+                LEFT JOIN subject_hours_load_count shlc ON sl.id = shlc.subject_load_id
+                WHERE sl.id = ?
+            """, (load_id,))
+            
+            stats = cursor.fetchone()
+            
+            loads.append({
+                "id": load_id,
+                "semester": row["semester"],
+                "department_name": row["department_name"],
+                "type": row["type"],
+                "course": row["course"],
+                "squads": squads,
+                "themes_count": stats["themes_count"] or 0,
+                "lesson_types_count": stats["lesson_types_count"] or 0,
+                "total_hours": stats["total_hours"] or 0
+            })
+        
+        conn.close()
+        
+        result = {
+            **dict(subject),
+            "loads_count": len(loads),
+            "loads": loads
+        }
+        
+        print(f"✅ Данные предмета загружены, нагрузок: {len(loads)}")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка получения деталей предмета: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения деталей предмета: {str(e)}")
+
+@app.post("/subjects")
+def add_subject(data: dict):
+    """
+    Добавить новый предмет
+    """
+    try:
+        print(f"➕ Добавление нового предмета: {data}")
+        
+        name = data.get("name", "").strip()
+        
+        if not name:
+            raise HTTPException(status_code=400, detail="Название предмета обязательно")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка уникальности
+        cursor.execute("SELECT id FROM subjects WHERE name = ?", (name,))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Предмет с таким названием уже существует")
+        
+        # Добавление предмета
+        cursor.execute("INSERT INTO subjects (name) VALUES (?)", (name,))
+        
+        subject_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Предмет добавлен, ID={subject_id}")
+        return {"success": True, "message": "Предмет добавлен", "id": subject_id}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка добавления предмета: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления предмета: {str(e)}")
+
+@app.put("/subjects/{subject_id}")
+def update_subject(subject_id: int, data: dict):
+    """
+    Обновить предмет
+    """
+    try:
+        print(f"🔄 Обновление предмета ID={subject_id}: {data}")
+        
+        name = data.get("name", "").strip()
+        
+        if not name:
+            raise HTTPException(status_code=400, detail="Название предмета обязательно")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования предмета
+        cursor.execute("SELECT id FROM subjects WHERE id = ?", (subject_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Предмет не найден")
+        
+        # Проверка уникальности (кроме текущего предмета)
+        cursor.execute("""
+            SELECT id FROM subjects 
+            WHERE name = ? AND id != ?
+        """, (name, subject_id))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Предмет с таким названием уже существует")
+        
+        # Обновление предмета
+        cursor.execute("UPDATE subjects SET name = ? WHERE id = ?", (name, subject_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Предмет обновлен"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка обновления предмета: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления предмета: {str(e)}")
+
+@app.delete("/subjects/{subject_id}")
+def delete_subject(subject_id: int):
+    """
+    Удалить предмет со всеми связанными данными
+    """
+    try:
+        print(f"🗑️ Удаление предмета ID={subject_id} со всеми связанными данными")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования предмета
+        cursor.execute("SELECT name FROM subjects WHERE id = ?", (subject_id,))
+        subject = cursor.fetchone()
+        if not subject:
+            raise HTTPException(status_code=404, detail="Предмет не найден")
+        
+        # Получаем все нагрузки этого предмета
+        cursor.execute("SELECT id FROM subject_loads WHERE subject_id = ?", (subject_id,))
+        load_ids = [row["id"] for row in cursor.fetchall()]
+        
+        # Начинаем транзакцию для каскадного удаления
+        conn.execute("BEGIN TRANSACTION")
+        
+        try:
+            if load_ids:
+                # 1. Удаляем темы
+                cursor.execute("""
+                    DELETE FROM themes 
+                    WHERE subject_load_id IN ({})
+                """.format(','.join('?' * len(load_ids))), load_ids)
+                print(f"✅ Удалено тем: {cursor.rowcount}")
+                
+                # 2. Удаляем часы нагрузки
+                cursor.execute("""
+                    DELETE FROM subject_hours_load_count 
+                    WHERE subject_load_id IN ({})
+                """.format(','.join('?' * len(load_ids))), load_ids)
+                print(f"✅ Удалено часов нагрузки: {cursor.rowcount}")
+                
+                # 3. Удаляем связки с взводами
+                cursor.execute("""
+                    DELETE FROM squad_subject_loads 
+                    WHERE subject_load_id IN ({})
+                """.format(','.join('?' * len(load_ids))), load_ids)
+                print(f"✅ Удалено связок с взводами: {cursor.rowcount}")
+                
+                # 4. Обновляем уроки (очищаем связанные поля)
+                cursor.execute("""
+                    UPDATE lessons 
+                    SET theme_id = NULL, 
+                        subject_load_id = NULL,
+                        audience = NULL
+                    WHERE subject_load_id IN ({})
+                """.format(','.join('?' * len(load_ids))), load_ids)
+                print(f"✅ Обновлено уроков: {cursor.rowcount}")
+                
+                # 5. Удаляем сами нагрузки
+                cursor.execute("""
+                    DELETE FROM subject_loads 
+                    WHERE id IN ({})
+                """.format(','.join('?' * len(load_ids))), load_ids)
+                print(f"✅ Удалено нагрузок: {cursor.rowcount}")
+            
+            # 6. Удаляем сам предмет
+            cursor.execute("DELETE FROM subjects WHERE id = ?", (subject_id,))
+            
+            conn.commit()
+            
+        except Exception as e:
+            conn.rollback()
+            raise
+        
+        conn.close()
+        
+        subject_name = subject["name"]
+        return {"success": True, "message": f"Предмет '{subject_name}' и все связанные данные удалены"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка удаления предмета: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления предмета: {str(e)}")
 
 # Запуск сервера
 if __name__ == "__main__":
