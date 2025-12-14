@@ -1,6 +1,5 @@
 import { useState } from "react";
 import DropdownList from "./DropdownList";
-// import { dropDownOptionsData } from "../../data/dropDownOptionsData";
 import { useActionPanel } from "../../context/ActionPanelContext";
 import { useEdit } from "../../context/useEdit";
 
@@ -38,37 +37,35 @@ function EditSubjectPanel({ }) {
       switch (field) {
         case "subject":
           // Для предметов нужен только platoonId
-          options = await fetchFieldData(field, { platoonId: params.platoonId || selectedCells[0]?.tableId });
+          options = await fetchFieldData(field, { platoon_id: params.platoon_id });
           break;
 
         case "topicNumber":
-          // Для тем нужны subjectId и lessonType (если есть)
-options = await fetchFieldData(field, { 
-            subjectId: params.subjectId, 
-            lessonType: params.lessonType 
+          options = await fetchFieldData(field, {
+            subject_load_id: params.subject_load_id,
+            lesson_type: params.lesson_type
           });
           break;
 
         case "type":
           // Для типов занятий нужен subjectId
-          options = await fetchFieldData(field, { 
-            subjectId: params.subjectId 
+          options = await fetchFieldData(field, {
+            subject_load_id: params.subject_load_id
           });
           break;
 
         case "audience":
           // Для аудиторий нужны subjectId и lessonType (если есть)
-          options = await fetchFieldData(field, { 
-            subjectId: params.subjectId, 
-            lessonType: params.lessonType 
+          options = await fetchFieldData(field, {
+            subject_load_id: params.subject_load_id,
+            lesson_type: params.lesson_type
           });
           break;
 
         case "teacher":
-          // Преподаватели не требуют параметров
-                    options = await fetchFieldData(field, { 
-            platoonId: params.platoonId,
-            subjectId: params.subjectId
+          options = await fetchFieldData(field, {
+            platoon_id: params.platoon_id,
+            subject_load_id: params.subject_load_id
           });
           break;
 
@@ -116,7 +113,7 @@ options = await fetchFieldData(field, {
             value: item
           }));
           break;
-          
+
         case "topicNumber":
           formatted = options.map(item => ({
             id: `${item.topic}.${item.subtopic}`,
@@ -124,7 +121,7 @@ options = await fetchFieldData(field, {
             value: item
           }));
           break;
-          
+
         case "type":
           formatted = options.map((item, index) => ({
             id: index,
@@ -132,15 +129,15 @@ options = await fetchFieldData(field, {
             value: item
           }));
           break;
-          
+
         case "audience":
           formatted = options.map(item => ({
             id: item.id,
-            label: `Ауд. ${item.id} (приоритет: ${item.importance})`,
+            label: `Ауд. ${item.id} (п: ${item.importance})`,
             value: item.id
           }));
           break;
-          
+
         case "teacher":
           formatted = options.map((item, index) => ({
             id: index,
@@ -148,7 +145,7 @@ options = await fetchFieldData(field, {
             value: item
           }));
           break;
-          
+
         default:
           formatted = [];
       }
@@ -197,7 +194,7 @@ options = await fetchFieldData(field, {
               {isLoading && selectedField === field && " (загрузка...)"}
             </button>
           ))}
-          
+
           {/* Сообщение об ошибке если есть */}
           {dropdownData.error && (
             <div className="text-xs text-red-500 mt-2 p-1 bg-red-50 rounded">

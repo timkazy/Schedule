@@ -1,11 +1,12 @@
 // src/config/appConfig.js
 export const appConfig = {
   // Режим работы: 'local' или 'server'
-  dataSource: 'local', // или 'server'
+  // dataSource: 'local', // или 'server'
+  dataSource: 'server', // или 'server'
   
   // Настройки сервера
   server: {
-    baseUrl: 'http://localhost:8000/api',
+    baseUrl: 'http://localhost:8000',
     timeout: 3000, // 5 секунд
   },
   

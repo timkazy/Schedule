@@ -1,5 +1,5 @@
 // src/components/menu/AddMenu.jsx
-import searchIcon from "../../assets/icons/search.svg";
+// import searchIcon from "../../assets/icons/search.svg";
 import editIcon from "../../assets/icons/edit.svg";
 import addIcon from "../../assets/icons/add.svg";
 import printIcon from "../../assets/icons/print.svg";
@@ -34,7 +34,7 @@ function AddMenu() {
   };
 
   const editItems = [
-    { id: "search", name: "Поиск", icon: searchIcon, action: () => console.log("Поиск") },
+    // { id: "search", name: "Поиск", icon: searchIcon, action: () => console.log("Поиск") },
     {
       id: "edit",
       name: isEditing ? "Выйти из режима редактирования" : "Редактировать",
@@ -51,7 +51,7 @@ function AddMenu() {
   ];
 
   return (
-    <div className="fixed left-4 top-[49%] transform translate-y-20 z-40">
+    <div className="fixed left-4 top-[56%] transform translate-y-20 z-40">
       <div className={`bg-green-400 rounded-2xl p-2 shadow-lg transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
         <div className="flex flex-col space-y-5">
           {editItems.map((item) => (

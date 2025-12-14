@@ -1,6 +1,6 @@
 import { createContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { tablesData } from "../data/tablesData";
-import { scheduleApi } from "../api/scheduleApi";
+import { scheduleApi } from "../api/api";
 import { localDropdownData } from "../data/localDropdownData";
 import { appConfig, isLocalMode } from "../config/appConfig";
 
@@ -21,6 +21,7 @@ export const EditProvider = ({ children }) => {
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [selectedCells, setSelectedCells] = useState([]);
   const [copiedCell, setCopiedCell] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
@@ -35,10 +36,8 @@ export const EditProvider = ({ children }) => {
 
   const selectedCount = selectedCells.length;
 
-  // --- загрузка расписания ---
   const fetchSchedule = useCallback(async () => {
     if (isLocalMode()) {
-      // Локальный режим
       try {
         console.log("📁 Загрузка локальных данных расписания");
         setScheduleData(tablesData);
@@ -47,12 +46,13 @@ export const EditProvider = ({ children }) => {
         setScheduleData([]);
       }
     } else {
-      // Серверный режим
       try {
         console.log("🌐 Загрузка данных с сервера");
         const res = await fetch(`${appConfig.server.baseUrl}/schedule`);
         const data = await res.json();
         setScheduleData(data);
+        console.log("🌐 Все загрузилось!");
+
       } catch (err) {
         console.error("Ошибка загрузки данных с сервера:", err);
       }
@@ -63,29 +63,27 @@ export const EditProvider = ({ children }) => {
     fetchSchedule();
   }, [fetchSchedule]);
 
-  // 👇 Универсальная функция загрузки данных
   const loadData = useCallback(async (loaderType, params = {}) => {
-    const { platoonId, subjectId, lessonType } = params;
+    const { platoon_id, subject_load_id, lesson_type } = params;
 
-    // Создаем ключ для кэша
-    let cacheKey = '';
-    let cacheMap = null;
+    let cacheMap = '';
+    let cacheKey = null;
 
     switch (loaderType) {
       case 'subjects':
-        cacheKey = platoonId;
+        cacheKey = platoon_id;
         cacheMap = dataCache.subjects;
         break;
       case 'topics':
-        cacheKey = lessonType ? `${subjectId}_${lessonType}` : `${subjectId}`;
+        cacheKey = lesson_type ? `${subject_load_id}_${lesson_type}` : `${subject_load_id}`;
         cacheMap = dataCache.topics;
         break;
       case 'lessonTypes':
-        cacheKey = subjectId;
+        cacheKey = subject_load_id;
         cacheMap = dataCache.lessonTypes;
         break;
       case 'audiences':
-        cacheKey = lessonType ? `${subjectId}_${lessonType}` : `${subjectId}`;
+        cacheKey = lesson_type ? `${subject_load_id}_${lesson_type}` : `${subject_load_id}`;
         cacheMap = dataCache.audiences;
         break;
     }
@@ -102,19 +100,19 @@ export const EditProvider = ({ children }) => {
       // Локальные данные
       switch (loaderType) {
         case 'subjects':
-          data = localDropdownData.getSubjects(platoonId);
+          data = localDropdownData.getSubjects(platoon_id);
           break;
         case 'topics':
-          data = localDropdownData.getTopics(subjectId, lessonType);
+          data = localDropdownData.getTopics(subject_load_id, lesson_type);
           break;
         case 'lessonTypes':
-          data = localDropdownData.getLessonTypes(subjectId);
+          data = localDropdownData.getLessonTypes(subject_load_id);
           break;
         case 'audiences':
-          data = localDropdownData.getAudiences(subjectId, lessonType);
+          data = localDropdownData.getAudiences(subject_load_id, lesson_type);
           break;
         case 'teachers':
-          data = localDropdownData.getTeachers(platoonId, subjectId);
+          data = localDropdownData.getTeachers(platoon_id, subject_load_id);
           break;
         default:
           data = [];
@@ -124,26 +122,25 @@ export const EditProvider = ({ children }) => {
       try {
         switch (loaderType) {
           case 'subjects':
-            data = await scheduleApi.getSubjects(platoonId);
+            data = await scheduleApi.getSubjects(platoon_id);
             break;
           case 'topics':
-            data = await scheduleApi.getTopics(subjectId, lessonType);
+            data = await scheduleApi.getTopics(subject_load_id, lesson_type);
             break;
           case 'lessonTypes':
-            data = await scheduleApi.getLessonTypes(subjectId);
+            data = await scheduleApi.getLessonTypes(subject_load_id);
             break;
           case 'audiences':
-            data = await scheduleApi.getAudiences(subjectId, lessonType);
+            data = await scheduleApi.getAudiences(subject_load_id, lesson_type);
             break;
           case 'teachers':
-            data = await scheduleApi.getTeachers(platoonId, subjectId);
+            data = await scheduleApi.getTeachers(platoon_id, subject_load_id);
             break;
           default:
             data = [];
         }
       } catch (error) {
         console.error(`Ошибка загрузки ${loaderType} с сервера:`, error);
-
       }
     }
 
@@ -158,12 +155,13 @@ export const EditProvider = ({ children }) => {
     return data || [];
   }, [dataCache, dataSource]);
 
-  // 👇 Функции загрузки для каждого типа данных
-  const fetchSubjects = useCallback(async (platoonId) => {
+  // --- SUBJECTS ---
+  const fetchSubjects = useCallback(async (platoon_id) => {
     setDropdownData(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const data = await loadData('subjects', { platoonId });
+      const data = await loadData('subjects', { platoon_id });
       setDropdownData(prev => ({ ...prev, subjects: data }));
+      console.log("fetchSubjects data: ", data)
       return data;
     } catch (error) {
       console.error("Ошибка загрузки предметов:", error);
@@ -174,10 +172,11 @@ export const EditProvider = ({ children }) => {
     }
   }, [loadData]);
 
-  const fetchTopics = useCallback(async (subjectId, lessonType = null) => {
+  // --- TOPICS ---
+  const fetchTopics = useCallback(async (subject_load_id, lesson_type = null) => {
     setDropdownData(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const data = await loadData('topics', { subjectId, lessonType });
+      const data = await loadData('topics', { subject_load_id, lesson_type });
       setDropdownData(prev => ({ ...prev, topics: data }));
       return data;
     } catch (error) {
@@ -189,10 +188,11 @@ export const EditProvider = ({ children }) => {
     }
   }, [loadData]);
 
-  const fetchLessonTypes = useCallback(async (subjectId) => {
+  // --- LESSON TYPES ---
+  const fetchLessonTypes = useCallback(async (subject_load_id = null) => {
     setDropdownData(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const data = await loadData('lessonTypes', { subjectId });
+      const data = await loadData('lessonTypes', { subject_load_id });
       setDropdownData(prev => ({ ...prev, lessonTypes: data }));
       return data;
     } catch (error) {
@@ -204,10 +204,11 @@ export const EditProvider = ({ children }) => {
     }
   }, [loadData]);
 
-  const fetchAudiences = useCallback(async (subjectId, lessonType = null) => {
+  // --- AUDIENCES ---
+  const fetchAudiences = useCallback(async (subject_load_id, lesson_type = null) => {
     setDropdownData(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const data = await loadData('audiences', { subjectId, lessonType });
+      const data = await loadData('audiences', { subject_load_id, lesson_type });
       setDropdownData(prev => ({ ...prev, audiences: data }));
       return data;
     } catch (error) {
@@ -219,10 +220,11 @@ export const EditProvider = ({ children }) => {
     }
   }, [loadData]);
 
-  const fetchTeachers = useCallback(async (platoonId = null, subjectId = null) => {
+  // --- TEACHERS ---
+  const fetchTeachers = useCallback(async (platoon_id = null, subject_load_id = null) => {
     setDropdownData(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const data = await loadData('teachers', { platoonId, subjectId });
+      const data = await loadData('teachers', { platoon_id, subject_load_id });
       setDropdownData(prev => ({ ...prev, teachers: data }));
       return data;
     } catch (error) {
@@ -234,25 +236,27 @@ export const EditProvider = ({ children }) => {
     }
   }, [loadData]);
 
-  // 👇 Универсальная функция для получения данных поля
+  // --- Универсальная функция ---
   const fetchFieldData = useCallback(async (field, params = {}) => {
-    const { platoonId, subjectId, lessonType } = params;
+    const { platoon_id, subject_load_id, lesson_type } = params;
+
+    console.log(`📊 fetchFieldData → field=${field}`, params);
 
     switch (field) {
       case "subject":
-        return await fetchSubjects(platoonId);
+        return await fetchSubjects(platoon_id);
 
       case "topicNumber":
-        return await fetchTopics(subjectId, lessonType);
+        return await fetchTopics(subject_load_id, lesson_type);
 
       case "type":
-        return await fetchLessonTypes(subjectId);
+        return await fetchLessonTypes(subject_load_id);
 
       case "audience":
-        return await fetchAudiences(subjectId, lessonType);
+        return await fetchAudiences(subject_load_id, lesson_type);
 
       case "teacher":
-        return await fetchTeachers(platoonId, subjectId);
+        return await fetchTeachers(platoon_id, subject_load_id);
 
       default:
         console.warn(`Неизвестное поле: ${field}`);
@@ -279,36 +283,38 @@ export const EditProvider = ({ children }) => {
 
     const { tableId, columnIndex, cellIndex } = selectedCells[0];
     const cell = getCellValue(tableId, columnIndex, cellIndex);
+
     const column = scheduleData
       .flatMap(day => day.platoons)
       .find(t => t.platoonId === tableId)
       ?.columns[columnIndex];
 
     return {
-      platoonId: tableId,
-      subjectId: cell?.subjectId,
-      lessonType: cell?.type,
-      date: column?.date,
-      time: column?.time,
-      cellData: cell,
+      platoon_id: tableId,
+      subject_load_id: cell?.subject_load_id,
+      lesson_id: cell?.lesson_id,
+      lesson_type: cell?.type,
     };
   }, [selectedCells, getCellValue, scheduleData]);
 
   // --- обновить ячейку ---
   const updateCellValue = useCallback(async (tableId, colIndex, cellIndex, newValue) => {
-    // ЛОКАЛЬНО
+    // 1. ЛОКАЛЬНОЕ ОБНОВЛЕНИЕ
     setScheduleData((prev) => {
       const updatedData = prev.map((day) => ({
         ...day,
         platoons: day.platoons.map((table) => {
           if (table.platoonId !== tableId) return table;
+
           const newCols = [...table.columns];
           if (!newCols[colIndex] || !newCols[colIndex].cells) {
             console.error(`Колонка ${colIndex} или её ячейки не найдены`);
             return table;
           }
+
           const existingCell = newCols[colIndex].cells[cellIndex] || {};
           const cell = { ...existingCell, ...newValue };
+
           newCols[colIndex].cells[cellIndex] = cell;
           return { ...table, columns: newCols };
         }),
@@ -317,9 +323,9 @@ export const EditProvider = ({ children }) => {
       // Сохраняем в localStorage
       try {
         localStorage.setItem('scheduleData', JSON.stringify(updatedData));
-        console.log('Данные сохранены в localStorage');
+        console.log('📁 Данные сохранены в localStorage');
       } catch (err) {
-        console.error('Ошибка сохранения в localStorage:', err);
+        console.error('❌ Ошибка сохранения в localStorage:', err);
       }
 
       return updatedData;
@@ -327,35 +333,36 @@ export const EditProvider = ({ children }) => {
 
     setHasChanges(true);
 
-    // 2. Отправляем на сервер
+    // 2. ОТПРАВКА НА СЕРВЕР (только в серверном режиме)
+    if (!isLocalMode()) {
+      try {
+        const column = scheduleData
+          .flatMap(day => day.platoons)
+          .find(t => t.platoonId === tableId)
+          ?.columns[colIndex];
 
-    // try {
-    //   const cell = getCellValue(tableId, colIndex, cellIndex);
-    //   const column = scheduleData
-    //     .flatMap(day => day.platoons)
-    //     .find(t => t.platoonId === tableId)
-    //     ?.columns[colIndex];
+        const result = await scheduleApi.saveCell({
+          lesson_id: column?.cells?.[cellIndex]?.lesson_id,
+          platoon_id: tableId,
+          subject_load_id: newValue.subject_load_id,
+          subject: newValue.subject,
+          topic: newValue.topic,
+          subtopic: newValue.subtopic,
+          type: newValue.type,
+          audience: newValue.audience,
+          teacher: newValue.teacher,
+          date: column?.title, // В ваших данных date хранится в title
+          time: cellIndex + 1, // Номер пары (1, 2, 3, 4)
+        });
+        console.log('✅ Сервер ответил:', result);
 
-    //   if (!cell?.lessonId) return;
-
-    //   await scheduleApi.saveCell({
-    //     lessonId: cell.lessonId,
-    //     platoonId: tableId,
-    //     subjectId: newValue.subjectId,
-    //     subject: newValue.subject,
-    //     topic: newValue.topic,
-    //     subtopic: newValue.subtopic,
-    //     type: newValue.type,
-    //     audience: newValue.audience,
-    //     teacher: newValue.teacher,
-    //     date: column?.date,
-    //     time: column?.time,
-    //   });
-    // } catch (err) {
-    //   console.error("Ошибка при сохранении ячейки:", err);
-    //   // Можно добавить уведомление пользователю
-    // }
-  }, [getCellValue, scheduleData]);
+      } catch (err) {
+        console.error("❌ Ошибка при сохранении ячейки на сервере:", err);
+      }
+    } else {
+      console.log('📁 Локальный режим - данные не отправлены на сервер');
+    }
+  }, [scheduleData, isLocalMode]); // Добавляем isLocalMode в зависимости
 
   // --- вычисляем, пуста ли выбранная ячейка ---
   const isSingleEmptyCell = useMemo(() => {
@@ -395,7 +402,8 @@ export const EditProvider = ({ children }) => {
             setCopiedCell(cell);
             selectedCells.forEach(({ tableId, columnIndex, cellIndex }) => {
               updateCellValue(tableId, columnIndex, cellIndex, {
-                id: null,
+                subject_load_id: null,
+                // lesson_id: null,
                 subject: null,
                 topic: null,
                 subtopic: null,
@@ -421,7 +429,8 @@ export const EditProvider = ({ children }) => {
           if (selectedCount >= 1) {
             selectedCells.forEach(({ tableId, columnIndex, cellIndex }) => {
               updateCellValue(tableId, columnIndex, cellIndex, {
-                id: null,
+                subject_load_id: null,
+                // lesson_id: null,
                 subject: null,
                 topic: null,
                 subtopic: null,
@@ -460,18 +469,20 @@ export const EditProvider = ({ children }) => {
 
           let updateData = {};
 
+          console.log("value", value)
+          console.log("currentCell", currentCell)
+
           switch (field) {
             case "subject":
-              // Для предмета сохраняем имя и id (если нужно)
               updateData = {
-                subject: value === null ? null : value.name,
-                subjectId: value === null ? null : value.id,
-                topicNumber: null,
+                subject: value.name,
+                subject_load_id: value.subject_load_id,
+                // lesson_id: null,
                 topic: null,
                 subtopic: null,
                 type: null,
-                teacher: null,
                 audience: null,
+                teacher: null,
               };
               break;
 
@@ -540,6 +551,10 @@ export const EditProvider = ({ children }) => {
         setIsEditing,
         hasChanges,
         setHasChanges,
+
+        // Режим добавления
+        isAdding,
+        setIsAdding,
 
         // Выделение ячеек
         selectedCells,

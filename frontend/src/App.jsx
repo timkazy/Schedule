@@ -14,6 +14,8 @@ import Disciplines from "./pages/Disciplines";
 import Teachers from "./pages/Teachers";
 import Audience from "./pages/Audience";
 import Settings from "./pages/Settings";
+import Subjects from "./pages/Subjects";
+import Departments from "./pages/Departments";
 
 function App() {
   return (
@@ -27,10 +29,13 @@ function App() {
         <div className="ml-20 mr-20">
           <Routes>
             <Route path="/" element={<Schedule />} />
-            <Route path="/platoons" element={<Platoons />} />
             <Route path="/disciplines" element={<Disciplines />} />
-            <Route path="/teachers" element={<Teachers />} />
+            
+            <Route path="/platoons" element={<Platoons />} />
+            <Route path="/departments" element={<Departments />} />
+            <Route path="/subjects" element={<Subjects />} />
             <Route path="/audience" element={<Audience />} />
+            <Route path="/teachers" element={<Teachers />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </div>

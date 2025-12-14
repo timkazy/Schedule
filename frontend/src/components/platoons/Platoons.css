@@ -1,0 +1,105 @@
+.platoons-page {
+  min-height: 100vh;
+  padding-bottom: 50px;
+}
+
+.platoons-container {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.control-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.control-label {
+  min-width: 150px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.platoon-info-section {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #3b82f6;
+}
+
+.platoon-field {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.platoon-field label {
+  min-width: 180px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.platoon-value {
+  font-weight: 600;
+  color: #111827;
+}
+
+.edit-input {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 16px;
+  width: 200px;
+}
+
+.edit-select {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 16px;
+  background-color: white;
+  width: 200px;
+}
+
+.save-button {
+  background-color: #10b981;
+  color: white;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.save-button:hover {
+  background-color: #059669;
+}
+
+.cancel-button {
+  background-color: #6b7280;
+  color: white;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-left: 10px;
+}
+
+.cancel-button:hover {
+  background-color: #4b5563;
+}

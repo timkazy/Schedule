@@ -5,8 +5,10 @@ import tableIcon from "../../assets/icons/table.svg";
 import platoonIcon from "../../assets/icons/platoon.svg";
 import officerIcon from "../../assets/icons/officer.svg";
 import subjectIcon from "../../assets/icons/subject.svg";
+import subjectLoadIcon from "../../assets/icons/subject_load.svg";
 import audienceIcon from "../../assets/icons/audience.svg";
 import settingsIcon from "../../assets/icons/settings.svg";
+import departmentsIcon from "../../assets/icons/department.svg";
 
 function MainMenu() {
   const location = useLocation();
@@ -14,11 +16,13 @@ function MainMenu() {
 
   const menuItems = [
     { id: 1, name: "Таблица", icon: tableIcon, link: "/" },
-    { id: 2, name: "Взвода", icon: platoonIcon, link: "/platoons" },
-    { id: 3, name: "Офицеры", icon: officerIcon, link: "/teachers" },
-    { id: 4, name: "Предметы", icon: subjectIcon, link: "/disciplines" },
+    { id: 2, name: "Нагрузки", icon: subjectLoadIcon, link: "/disciplines" },
+    { id: 3, name: "Взвода", icon: platoonIcon, link: "/platoons" },
+    { id: 4, name: "Предметы", icon: subjectIcon, link: "/subjects" },
     { id: 5, name: "Аудитории", icon: audienceIcon, link: "/audience" },
-    { id: 6, name: "Настройки", icon: settingsIcon, link: "/settings" },
+    { id: 6, name: "Офицеры", icon: officerIcon, link: "/teachers" },
+    { id: 7, name: "Кафедры", icon: departmentsIcon, link: "/departments" },
+    // { id: 8, name: "Настройки", icon: settingsIcon, link: "/settings" },
   ];
 
   const handleNavigation = (e, item) => {
@@ -35,7 +39,7 @@ function MainMenu() {
   };
 
   return (
-    <div className="fixed left-4 top-[53%] transform -translate-y-72 z-50">
+    <div className="fixed left-4 top-[51%] transform -translate-y-72 z-50">
       <div className={`bg-green-400 rounded-2xl p-2 shadow-lg transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
         <div className="flex flex-col space-y-5">
           {menuItems.map((item) => (

@@ -43,7 +43,6 @@ function Schedule() {
         </div>
       </div>
     </>
-
   );
 }
 
