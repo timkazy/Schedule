@@ -296,3 +296,50 @@ export const disciplineApi = {
     return response.json();
   },
 };
+
+export const audienceApi = {
+  // Основные методы для аудиторий
+  async getAudiences() {
+    const response = await fetch(`${API_BASE}/audience/audiences`);
+    return response.json();
+  },
+
+  async getAudienceDetails(audienceNumber) {
+    const response = await fetch(`${API_BASE}/audience/audiences/${audienceNumber}`);
+    return response.json();
+  },
+
+  async addAudience(audienceNumber) {
+    const response = await fetch(`${API_BASE}/audience/audiences`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: audienceNumber }),
+    });
+    return response.json();
+  },
+
+  async deleteAudience(audienceNumber) {
+    const response = await fetch(`${API_BASE}/audience/audiences/${audienceNumber}`, {
+      method: 'DELETE',
+    });
+    return response.json();
+  },
+
+  // Работа с нагрузками часов
+  async getAvailableHourLoads(audienceNumber) {
+    const response = await fetch(`${API_BASE}/audience/audiences/${audienceNumber}/available-hour-loads`);
+    return response.json();
+  },
+
+  async updateHourLoadAudiences(subjectLoadId, lessonTypeId, data) {
+    const response = await fetch(
+      `${API_BASE}/audience/subject-loads/${subjectLoadId}/lesson-types/${lessonTypeId}/audiences`, 
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }
+    );
+    return response.json();
+  },
+};

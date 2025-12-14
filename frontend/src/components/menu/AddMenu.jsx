@@ -1,5 +1,5 @@
 // src/components/menu/AddMenu.jsx
-import searchIcon from "../../assets/icons/search.svg";
+// import searchIcon from "../../assets/icons/search.svg";
 import editIcon from "../../assets/icons/edit.svg";
 import addIcon from "../../assets/icons/add.svg";
 import printIcon from "../../assets/icons/print.svg";
@@ -34,7 +34,7 @@ function AddMenu() {
   };
 
   const editItems = [
-    { id: "search", name: "Поиск", icon: searchIcon, action: () => console.log("Поиск") },
+    // { id: "search", name: "Поиск", icon: searchIcon, action: () => console.log("Поиск") },
     {
       id: "edit",
       name: isEditing ? "Выйти из режима редактирования" : "Редактировать",

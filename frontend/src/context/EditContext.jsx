@@ -21,6 +21,7 @@ export const EditProvider = ({ children }) => {
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [selectedCells, setSelectedCells] = useState([]);
   const [copiedCell, setCopiedCell] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
@@ -550,6 +551,10 @@ export const EditProvider = ({ children }) => {
         setIsEditing,
         hasChanges,
         setHasChanges,
+
+        // Режим добавления
+        isAdding,
+        setIsAdding,
 
         // Выделение ячеек
         selectedCells,

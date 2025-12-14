@@ -1910,6 +1910,339 @@ def delete_theme(theme_id: int):
         raise HTTPException(status_code=500, detail=f"Ошибка удаления темы: {str(e)}")
 
 
+# ------------------------ AUDIENCES ------------------------
+
+# ============================================================================
+# АУДИТОРИИ
+# ============================================================================
+
+@app.get("/audience/audiences")
+def get_audiences():
+    """
+    Получить все аудитории
+    """
+    try:
+        print("🔄 Получение всех аудиторий")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                a.number,
+                COUNT(DISTINCT shlc.subject_load_id) as load_count,
+                COUNT(DISTINCT l.id) as lessons_count,
+                MAX(l.date) as last_lesson_date
+            FROM audiences a
+            LEFT JOIN subject_hours_load_count shlc ON shlc.audiences LIKE '%' || a.number || '%'
+            LEFT JOIN lessons l ON l.audience = a.number
+            GROUP BY a.number
+            ORDER BY a.number
+        """)
+        
+        audiences = cursor.fetchall()
+        conn.close()
+        
+        result = [dict(row) for row in audiences]
+        print(f"✅ Найдено аудиторий: {len(result)}")
+        return result
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения аудиторий: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения аудиторий: {str(e)}")
+
+@app.get("/audience/audiences/{audience_number}")
+def get_audience_details(audience_number: int):
+    """
+    Получить детальную информацию об аудитории
+    """
+    try:
+        print(f"🔄 Получение деталей аудитории №{audience_number}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования аудитории
+        cursor.execute("SELECT number FROM audiences WHERE number = ?", (audience_number,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Аудитория не найдена")
+        
+        # Основная статистика
+        cursor.execute("""
+            SELECT 
+                a.number as audience_number,
+                COUNT(DISTINCT shlc.subject_load_id) as load_count,
+                COUNT(DISTINCT l.id) as lessons_count,
+                MAX(l.date) as last_lesson_date
+            FROM audiences a
+            LEFT JOIN subject_hours_load_count shlc ON shlc.audiences LIKE '%' || a.number || '%'
+            LEFT JOIN lessons l ON l.audience = a.number
+            WHERE a.number = ?
+            GROUP BY a.number
+        """, (audience_number,))
+        
+        stats = cursor.fetchone()
+        if not stats:
+            stats = {"audience_number": audience_number, "load_count": 0, "lessons_count": 0, "last_lesson_date": None}
+        
+        # Нагрузки, связанные с этой аудиторией
+        cursor.execute("""
+            SELECT DISTINCT
+                shlc.subject_load_id,
+                shlc.lesson_type_id,
+                shlc.hours_count,
+                shlc.audiences,
+                s.name as subject_name,
+                d.name as department_name,
+                st.type,
+                st.course,
+                sl.semester,
+                lt.name as lesson_type_name
+            FROM subject_hours_load_count shlc
+            JOIN subject_loads sl ON shlc.subject_load_id = sl.id
+            JOIN subjects s ON sl.subject_id = s.id
+            JOIN departments d ON sl.department_id = d.id
+            JOIN squad_types st ON sl.squad_type_id = st.id
+            JOIN lesson_types lt ON shlc.lesson_type_id = lt.id
+            WHERE shlc.audiences LIKE '%' || ? || '%'
+            ORDER BY s.name, lt.name
+        """, (str(audience_number),))
+        
+        hour_loads = []
+        for row in cursor.fetchall():
+            audiences = []
+            if row["audiences"]:
+                audiences = [a.strip() for a in row["audiences"].split("/") if a.strip()]
+            
+            hour_loads.append({
+                "subject_load_id": row["subject_load_id"],
+                "lesson_type_id": row["lesson_type_id"],
+                "hours_count": row["hours_count"],
+                "audiences": audiences,
+                "subject_name": row["subject_name"],
+                "department_name": row["department_name"],
+                "type": row["type"],
+                "course": row["course"],
+                "semester": row["semester"],
+                "lesson_type_name": row["lesson_type_name"]
+            })
+        
+        conn.close()
+        
+        result = {
+            **dict(stats),
+            "hour_loads": hour_loads
+        }
+        
+        print(f"✅ Данные аудитории загружены")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка получения деталей аудитории: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения деталей аудитории: {str(e)}")
+
+@app.post("/audience/audiences")
+def add_audience(data: dict):
+    """
+    Добавить новую аудиторию
+    """
+    try:
+        print(f"➕ Добавление новой аудитории: {data}")
+        
+        audience_number = data.get("number")
+        
+        if not audience_number:
+            raise HTTPException(status_code=400, detail="Не указан номер аудитории")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования аудитории
+        cursor.execute("SELECT number FROM audiences WHERE number = ?", (audience_number,))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Аудитория с таким номером уже существует")
+        
+        # Добавление аудитории
+        cursor.execute("INSERT INTO audiences (number) VALUES (?)", (audience_number,))
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Аудитория №{audience_number} добавлена")
+        return {"success": True, "message": f"Аудитория №{audience_number} добавлена"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка добавления аудитории: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления аудитории: {str(e)}")
+
+@app.delete("/audience/audiences/{audience_number}")
+def delete_audience(audience_number: int):
+    """
+    Удалить аудиторию
+    """
+    try:
+        print(f"🗑️ Удаление аудитории №{audience_number}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования аудитории
+        cursor.execute("SELECT number FROM audiences WHERE number = ?", (audience_number,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Аудитория не найдена")
+        
+        # Мягкое удаление:
+        # 1. Обновляем уроки - очищаем поле audience
+        cursor.execute("""
+            UPDATE lessons 
+            SET audience = NULL 
+            WHERE audience = ?
+        """, (audience_number,))
+        
+        print(f"✅ Очищено поле audience в {cursor.rowcount} уроках")
+        
+        # 2. Удаляем аудиторию из subject_hours_load_count
+        cursor.execute("""
+            SELECT subject_load_id, lesson_type_id, audiences 
+            FROM subject_hours_load_count 
+            WHERE audiences LIKE '%' || ? || '%'
+        """, (str(audience_number),))
+        
+        print("111")
+        hour_loads = cursor.fetchall()
+        for row in hour_loads:
+            audiences = row["audiences"]
+            if audiences:
+                # Удаляем аудиторию из строки
+                audience_list = [a.strip() for a in audiences.split("/") if a.strip()]
+                audience_list = [a for a in audience_list if a != str(audience_number)]
+                new_audiences = "/".join(audience_list)
+                
+                cursor.execute("""
+                    UPDATE subject_hours_load_count 
+                    SET audiences = ? 
+                    WHERE subject_load_id = ? AND lesson_type_id = ?
+                """, (new_audiences, row["subject_load_id"], row["lesson_type_id"]))
+        
+        print(f"✅ Аудитория удалена из {len(hour_loads)} наборов часов нагрузки")
+        
+        # 3. Удаляем саму аудиторию
+        cursor.execute("DELETE FROM audiences WHERE number = ?", (audience_number,))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": f"Аудитория №{audience_number} удалена"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка удаления аудитории: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления аудитории: {str(e)}")
+
+@app.get("/audience/audiences/{audience_number}/available-hour-loads")
+def get_available_hour_loads(audience_number: int):
+    """
+    Получить доступные для добавления аудитории нагрузки часов
+    """
+    try:
+        print(f"📊 Получение доступных нагрузок для аудитории №{audience_number}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Нагрузки, где аудитории еще нет
+        cursor.execute("""
+            SELECT 
+                shlc.subject_load_id,
+                shlc.lesson_type_id,
+                shlc.hours_count,
+                shlc.audiences,
+                s.name as subject_name,
+                lt.name as lesson_type_name
+            FROM subject_hours_load_count shlc
+            JOIN subject_loads sl ON shlc.subject_load_id = sl.id
+            JOIN subjects s ON sl.subject_id = s.id
+            JOIN lesson_types lt ON shlc.lesson_type_id = lt.id
+            WHERE shlc.audiences NOT LIKE '%' || ? || '%'
+            ORDER BY s.name, lt.name
+        """, (str(audience_number),))
+        
+        hour_loads = []
+        for row in cursor.fetchall():
+            audiences = []
+            if row["audiences"]:
+                audiences = [a.strip() for a in row["audiences"].split("/") if a.strip()]
+            
+            hour_loads.append({
+                "subject_load_id": row["subject_load_id"],
+                "lesson_type_id": row["lesson_type_id"],
+                "hours_count": row["hours_count"],
+                "audiences": audiences,
+                "subject_name": row["subject_name"],
+                "lesson_type_name": row["lesson_type_name"]
+            })
+        
+        conn.close()
+        
+        print(f"✅ Найдено доступных нагрузок: {len(hour_loads)}")
+        return hour_loads
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения доступных нагрузок: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения доступных нагрузок: {str(e)}")
+
+@app.put("/audience/subject-loads/{subject_load_id}/lesson-types/{lesson_type_id}/audiences")
+def update_hour_load_audiences(subject_load_id: int, lesson_type_id: int, data: dict):
+    """
+    Обновить список аудиторий для нагрузки часов
+    """
+    try:
+        audiences = data.get("audiences", [])
+        
+        # Валидация: не более 3 аудиторий
+        if len(audiences) > 3:
+            raise HTTPException(status_code=400, detail="Максимум 3 аудитории на нагрузку")
+        
+        # Валидация: все аудитории должны существовать
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        for audience in audiences:
+            cursor.execute("SELECT number FROM audiences WHERE number = ?", (audience,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=400, detail=f"Аудитория №{audience} не найдена")
+        
+        # Формируем строку аудиторий
+        audiences_str = "/".join(str(audience) for audience in audiences)
+        
+        # Проверка существования нагрузки часов
+        cursor.execute("SELECT subject_load_id FROM subject_hours_load_count WHERE subject_load_id = ? AND lesson_type_id = ?", (subject_load_id, lesson_type_id))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Нагрузка часов не найдена")
+        
+        # Обновляем аудитории
+        cursor.execute("""
+            UPDATE subject_hours_load_count 
+            SET audiences = ? 
+            WHERE subject_load_id = ? AND lesson_type_id = ?
+        """, (audiences_str, subject_load_id, lesson_type_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Аудитории обновлены"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка обновления аудиторий: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления аудиторий: {str(e)}")
+
 
 # Запуск сервера
 if __name__ == "__main__":
