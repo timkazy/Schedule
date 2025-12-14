@@ -15,6 +15,7 @@ import Teachers from "./pages/Teachers";
 import Audience from "./pages/Audience";
 import Settings from "./pages/Settings";
 import Subjects from "./pages/Subjects";
+import Departments from "./pages/Departments";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
             <Route path="/disciplines" element={<Disciplines />} />
             
             <Route path="/platoons" element={<Platoons />} />
+            <Route path="/departments" element={<Departments />} />
             <Route path="/subjects" element={<Subjects />} />
             <Route path="/audience" element={<Audience />} />
             <Route path="/teachers" element={<Teachers />} />

@@ -448,3 +448,45 @@ export const subjectsApi = {
     return response.json();
   },
 };
+
+export const departmentsApi = {
+  // Получить все кафедры
+  async getDepartments() {
+    const response = await fetch(`${API_BASE}/departments`);
+    return response.json();
+  },
+
+  // Получить детали кафедры с нагрузками и взводами
+  async getDepartmentDetails(departmentId) {
+    const response = await fetch(`${API_BASE}/departments/${departmentId}`);
+    return response.json();
+  },
+
+  // Добавить кафедру
+  async addDepartment(departmentData) {
+    const response = await fetch(`${API_BASE}/departments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(departmentData),
+    });
+    return response.json();
+  },
+
+  // Обновить кафедру
+  async updateDepartment(departmentId, departmentData) {
+    const response = await fetch(`${API_BASE}/departments/${departmentId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(departmentData),
+    });
+    return response.json();
+  },
+
+  // Удалить кафедру
+  async deleteDepartment(departmentId) {
+    const response = await fetch(`${API_BASE}/departments/${departmentId}`, {
+      method: 'DELETE',
+    });
+    return response.json();
+  },
+};

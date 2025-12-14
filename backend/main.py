@@ -2965,6 +2965,341 @@ def delete_subject(subject_id: int):
         print(f"❌ Ошибка удаления предмета: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка удаления предмета: {str(e)}")
 
+# ----- DEPARTMENTS -----
+@app.get("/departments")
+def get_departments():
+    """
+    Получить все кафедры
+    """
+    try:
+        print("🔄 Получение списка кафедр")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                d.id,
+                d.name,
+                (SELECT COUNT(*) FROM squads WHERE department_id = d.id) as squads_count,
+                (SELECT COUNT(*) FROM subject_loads WHERE department_id = d.id) as loads_count
+            FROM departments d
+            ORDER BY d.name
+        """)
+        
+        departments = cursor.fetchall()
+        conn.close()
+        
+        result = [dict(row) for row in departments]
+        print(f"✅ Найдено кафедр: {len(result)}")
+        return result
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения кафедр: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения кафедр: {str(e)}")
+
+@app.get("/departments/{department_id}")
+def get_department_details(department_id: int):
+    """
+    Получить детальную информацию о кафедре со взводами и нагрузками
+    """
+    try:
+        print(f"🔄 Получение деталей кафедры ID={department_id}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Основная информация о кафедре
+        cursor.execute("""
+            SELECT 
+                id,
+                name
+            FROM departments
+            WHERE id = ?
+        """, (department_id,))
+        
+        department = cursor.fetchone()
+        if not department:
+            raise HTTPException(status_code=404, detail="Кафедра не найдена")
+        
+        # Взводы этой кафедры
+        cursor.execute("""
+            SELECT 
+                s.number,
+                st.type,
+                st.course,
+                s.day,
+                s.start_week,
+                s.end_week
+            FROM squads s
+            JOIN squad_types st ON s.squad_type_id = st.id
+            WHERE s.department_id = ?
+            ORDER BY s.number
+        """, (department_id,))
+        
+        squads = [dict(row) for row in cursor.fetchall()]
+        
+        # Нагрузки этой кафедры
+        cursor.execute("""
+            SELECT 
+                sl.id,
+                sl.semester,
+                s.name as subject_name,
+                st.type,
+                st.course
+            FROM subject_loads sl
+            JOIN subjects s ON sl.subject_id = s.id
+            JOIN squad_types st ON sl.squad_type_id = st.id
+            WHERE sl.department_id = ?
+            ORDER BY s.name, st.course, sl.semester
+        """, (department_id,))
+        
+        loads = []
+        for row in cursor.fetchall():
+            load_id = row["id"]
+            
+            # Взводы для этой нагрузки
+            cursor.execute("""
+                SELECT squad
+                FROM squad_subject_loads
+                WHERE subject_load_id = ?
+                ORDER BY squad
+            """, (load_id,))
+            
+            load_squads = [squad["squad"] for squad in cursor.fetchall()]
+            
+            # Статистика по нагрузке
+            cursor.execute("""
+                SELECT 
+                    COUNT(DISTINCT t.id) as themes_count,
+                    COUNT(DISTINCT shlc.lesson_type_id) as lesson_types_count,
+                    SUM(shlc.hours_count) as total_hours
+                FROM subject_loads sl
+                LEFT JOIN themes t ON sl.id = t.subject_load_id
+                LEFT JOIN subject_hours_load_count shlc ON sl.id = shlc.subject_load_id
+                WHERE sl.id = ?
+            """, (load_id,))
+            
+            stats = cursor.fetchone()
+            
+            loads.append({
+                "id": load_id,
+                "semester": row["semester"],
+                "subject_name": row["subject_name"],
+                "type": row["type"],
+                "course": row["course"],
+                "squads": load_squads,
+                "themes_count": stats["themes_count"] or 0,
+                "lesson_types_count": stats["lesson_types_count"] or 0,
+                "total_hours": stats["total_hours"] or 0
+            })
+        
+        conn.close()
+        
+        result = {
+            **dict(department),
+            "squads_count": len(squads),
+            "loads_count": len(loads),
+            "squads": squads,
+            "loads": loads
+        }
+        
+        print(f"✅ Данные кафедры загружены, взводов: {len(squads)}, нагрузок: {len(loads)}")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка получения деталей кафедры: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения деталей кафедры: {str(e)}")
+
+@app.post("/departments")
+def add_department(data: dict):
+    """
+    Добавить новую кафедру
+    """
+    try:
+        print(f"➕ Добавление новой кафедры: {data}")
+        
+        name = data.get("name", "").strip()
+        
+        if not name:
+            raise HTTPException(status_code=400, detail="Название кафедры обязательно")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка уникальности
+        cursor.execute("SELECT id FROM departments WHERE name = ?", (name,))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Кафедра с таким названием уже существует")
+        
+        # Добавление кафедры
+        cursor.execute("INSERT INTO departments (name) VALUES (?)", (name,))
+        
+        department_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Кафедра добавлена, ID={department_id}")
+        return {"success": True, "message": "Кафедра добавлена", "id": department_id}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка добавления кафедры: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления кафедры: {str(e)}")
+
+@app.put("/departments/{department_id}")
+def update_department(department_id: int, data: dict):
+    """
+    Обновить кафедру
+    """
+    try:
+        print(f"🔄 Обновление кафедры ID={department_id}: {data}")
+        
+        name = data.get("name", "").strip()
+        
+        if not name:
+            raise HTTPException(status_code=400, detail="Название кафедры обязательно")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования кафедры
+        cursor.execute("SELECT id FROM departments WHERE id = ?", (department_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Кафедра не найден")
+        
+        # Проверка уникальности (кроме текущей кафедры)
+        cursor.execute("""
+            SELECT id FROM departments 
+            WHERE name = ? AND id != ?
+        """, (name, department_id))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Кафедра с таким названием уже существует")
+        
+        # Обновление кафедры
+        cursor.execute("UPDATE departments SET name = ? WHERE id = ?", (name, department_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Кафедра обновлена"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка обновления кафедры: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления кафедры: {str(e)}")
+
+@app.delete("/departments/{department_id}")
+def delete_department(department_id: int):
+    """
+    Удалить кафедру со всеми связанными данными
+    """
+    try:
+        print(f"🗑️ Удаление кафедры ID={department_id} со всеми связанными данными")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования кафедры
+        cursor.execute("SELECT name FROM departments WHERE id = ?", (department_id,))
+        department = cursor.fetchone()
+        if not department:
+            raise HTTPException(status_code=404, detail="Кафедра не найдена")
+        
+        # Получаем все взводы этой кафедры
+        cursor.execute("SELECT number FROM squads WHERE department_id = ?", (department_id,))
+        squad_numbers = [row["number"] for row in cursor.fetchall()]
+        
+        # Получаем все нагрузки этой кафедры
+        cursor.execute("SELECT id FROM subject_loads WHERE department_id = ?", (department_id,))
+        load_ids = [row["id"] for row in cursor.fetchall()]
+        
+        # Начинаем транзакцию для каскадного удаления
+        conn.execute("BEGIN TRANSACTION")
+        
+        try:
+            if load_ids:
+                # 1. Удаляем темы
+                cursor.execute("""
+                    DELETE FROM themes 
+                    WHERE subject_load_id IN ({})
+                """.format(','.join('?' * len(load_ids))), load_ids)
+                print(f"✅ Удалено тем: {cursor.rowcount}")
+                
+                # 2. Удаляем часы нагрузки
+                cursor.execute("""
+                    DELETE FROM subject_hours_load_count 
+                    WHERE subject_load_id IN ({})
+                """.format(','.join('?' * len(load_ids))), load_ids)
+                print(f"✅ Удалено часов нагрузки: {cursor.rowcount}")
+                
+                # 3. Удаляем связки с взводами
+                cursor.execute("""
+                    DELETE FROM squad_subject_loads 
+                    WHERE subject_load_id IN ({})
+                """.format(','.join('?' * len(load_ids))), load_ids)
+                print(f"✅ Удалено связок с взводами: {cursor.rowcount}")
+                
+                # 4. Обновляем уроки (очищаем связанные поля)
+                cursor.execute("""
+                    UPDATE lessons 
+                    SET theme_id = NULL, 
+                        subject_load_id = NULL,
+                        audience = NULL
+                    WHERE subject_load_id IN ({})
+                """.format(','.join('?' * len(load_ids))), load_ids)
+                print(f"✅ Обновлено уроков: {cursor.rowcount}")
+                
+                # 5. Удаляем сами нагрузки
+                cursor.execute("""
+                    DELETE FROM subject_loads 
+                    WHERE id IN ({})
+                """.format(','.join('?' * len(load_ids))), load_ids)
+                print(f"✅ Удалено нагрузок: {cursor.rowcount}")
+            
+            if squad_numbers:
+                # 6. Обновляем уроки, связанные с взводами
+                cursor.execute("""
+                    UPDATE lessons 
+                    SET squad = NULL
+                    WHERE squad IN ({})
+                """.format(','.join('?' * len(squad_numbers))), squad_numbers)
+                print(f"✅ Обновлено уроков взводов: {cursor.rowcount}")
+                
+                # 7. Удаляем взводы
+                cursor.execute("""
+                    DELETE FROM squads 
+                    WHERE number IN ({})
+                """.format(','.join('?' * len(squad_numbers))), squad_numbers)
+                print(f"✅ Удалено взводов: {cursor.rowcount}")
+            
+            # 8. Удаляем саму кафедру
+            cursor.execute("DELETE FROM departments WHERE id = ?", (department_id,))
+            
+            conn.commit()
+            
+        except Exception as e:
+            conn.rollback()
+            raise
+        
+        conn.close()
+        
+        department_name = department["name"]
+        return {"success": True, "message": f"Кафедра '{department_name}' и все связанные данные удалены"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка удаления кафедры: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления кафедры: {str(e)}")
+
+
 # Запуск сервера
 if __name__ == "__main__":
     import uvicorn
