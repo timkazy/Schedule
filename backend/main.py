@@ -2244,6 +2244,427 @@ def update_hour_load_audiences(subject_load_id: int, lesson_type_id: int, data: 
         raise HTTPException(status_code=500, detail=f"Ошибка обновления аудиторий: {str(e)}")
 
 
+# ------- TEACHERS -------
+# ============================================================================
+# ПРЕПОДАВАТЕЛИ (обновленная версия)
+# ============================================================================
+
+@app.get("/teachers")
+def get_teachers():
+    """
+    Получить всех преподавателей (для списка)
+    """
+    try:
+        print("🔄 Получение списка преподавателей")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                id,
+                first_name,
+                second_name,
+                surname,
+                first_name || ' ' || second_name || ' ' || surname as full_name
+            FROM officers
+            ORDER BY surname, first_name
+        """)
+        
+        teachers = cursor.fetchall()
+        conn.close()
+        
+        result = [dict(row) for row in teachers]
+        print(f"✅ Найдено преподавателей: {len(result)}")
+        return result
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения преподавателей: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения преподавателей: {str(e)}")
+
+@app.get("/teachers/{teacher_id}")
+def get_teacher_details(teacher_id: int):
+    """
+    Получить детальную информацию о преподавателе со связками
+    """
+    try:
+        print(f"🔄 Получение деталей преподавателя ID={teacher_id}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Основная информация о преподавателе
+        cursor.execute("""
+            SELECT 
+                id,
+                first_name,
+                second_name,
+                surname,
+                first_name || ' ' || second_name || ' ' || surname as full_name
+            FROM officers
+            WHERE id = ?
+        """, (teacher_id,))
+        
+        teacher = cursor.fetchone()
+        if not teacher:
+            raise HTTPException(status_code=404, detail="Преподаватель не найден")
+        
+        # Связки с нагрузками и взводами
+        cursor.execute("""
+            SELECT 
+                ssl.subject_load_id,
+                ssl.squad,
+                ssl.officers,
+                s.name as subject_name,
+                d.name as department_name,
+                st.type,
+                st.course,
+                sl.semester
+            FROM squad_subject_loads ssl
+            JOIN subject_loads sl ON ssl.subject_load_id = sl.id
+            JOIN subjects s ON sl.subject_id = s.id
+            JOIN departments d ON sl.department_id = d.id
+            JOIN squad_types st ON sl.squad_type_id = st.id
+            WHERE ssl.officers LIKE '%' || ? || '%'
+            ORDER BY s.name, ssl.squad
+        """, (str(teacher_id),))
+        
+        connections = []
+        for row in cursor.fetchall():
+            officer_ids = []
+            if row["officers"]:
+                officer_ids = [id.strip() for id in row["officers"].split("/") if id.strip()]
+            
+            # Получаем имена всех преподавателей в этой связке
+            officer_names = []
+            if officer_ids:
+                placeholders = ','.join('?' * len(officer_ids))
+                cursor.execute(f"""
+                    SELECT first_name, second_name, surname
+                    FROM officers
+                    WHERE id IN ({placeholders})
+                    ORDER BY surname, first_name
+                """, officer_ids)
+                
+                for officer in cursor.fetchall():
+                    officer_names.append(f"{officer['surname']} {officer['first_name']} {officer['second_name']}")
+            
+            connections.append({
+                "subject_load_id": row["subject_load_id"],
+                "squad": row["squad"],
+                "officer_ids": officer_ids,
+                "officer_names": officer_names,
+                "subject_name": row["subject_name"],
+                "department_name": row["department_name"],
+                "type": row["type"],
+                "course": row["course"],
+                "semester": row["semester"]
+            })
+        
+        conn.close()
+        
+        result = {
+            **dict(teacher),
+            "connections": connections
+        }
+        
+        print(f"✅ Данные преподавателя загружены, связок: {len(connections)}")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка получения деталей преподавателя: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения деталей преподавателя: {str(e)}")
+
+@app.post("/teachers")
+def add_teacher(data: dict):
+    """
+    Добавить нового преподавателя
+    """
+    try:
+        print(f"➕ Добавление нового преподавателя: {data}")
+        
+        first_name = data.get("first_name", "").strip()
+        second_name = data.get("second_name", "").strip()
+        surname = data.get("surname", "").strip()
+        
+        # Валидация
+        if not all([first_name, second_name, surname]):
+            raise HTTPException(status_code=400, detail="Все поля (имя, отчество, фамилия) обязательны")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка уникальности
+        cursor.execute("""
+            SELECT id FROM officers 
+            WHERE first_name = ? AND second_name = ? AND surname = ?
+        """, (first_name, second_name, surname))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Преподаватель с таким ФИО уже существует")
+        
+        # Добавление преподавателя
+        cursor.execute("""
+            INSERT INTO officers (first_name, second_name, surname)
+            VALUES (?, ?, ?)
+        """, (first_name, second_name, surname))
+        
+        teacher_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Преподаватель добавлен, ID={teacher_id}")
+        return {"success": True, "message": "Преподаватель добавлен", "id": teacher_id}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка добавления преподавателя: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления преподавателя: {str(e)}")
+
+@app.put("/teachers/{teacher_id}")
+def update_teacher(teacher_id: int, data: dict):
+    """
+    Обновить данные преподавателя
+    """
+    try:
+        print(f"🔄 Обновление преподавателя ID={teacher_id}: {data}")
+        
+        first_name = data.get("first_name", "").strip()
+        second_name = data.get("second_name", "").strip()
+        surname = data.get("surname", "").strip()
+        
+        # Валидация
+        if not all([first_name, second_name, surname]):
+            raise HTTPException(status_code=400, detail="Все поля (имя, отчество, фамилия) обязательны")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования преподавателя
+        cursor.execute("SELECT id FROM officers WHERE id = ?", (teacher_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Преподаватель не найден")
+        
+        # Проверка уникальности (кроме текущего преподавателя)
+        cursor.execute("""
+            SELECT id FROM officers 
+            WHERE first_name = ? AND second_name = ? AND surname = ?
+            AND id != ?
+        """, (first_name, second_name, surname, teacher_id))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Преподаватель с таким ФИО уже существует")
+        
+        # Обновление данных
+        cursor.execute("""
+            UPDATE officers 
+            SET first_name = ?, second_name = ?, surname = ?
+            WHERE id = ?
+        """, (first_name, second_name, surname, teacher_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Данные преподавателя обновлены"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка обновления преподавателя: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления преподавателя: {str(e)}")
+
+@app.delete("/teachers/{teacher_id}")
+def delete_teacher(teacher_id: int):
+    """
+    Удалить преподавателя (мягкое удаление)
+    """
+    try:
+        print(f"🗑️ Мягкое удаление преподавателя ID={teacher_id}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Проверка существования преподавателя
+        cursor.execute("SELECT first_name, second_name, surname FROM officers WHERE id = ?", (teacher_id,))
+        teacher = cursor.fetchone()
+        if not teacher:
+            raise HTTPException(status_code=404, detail="Преподаватель не найден")
+        
+        print("111")
+        # Мягкое удаление:
+        # 1. Обновляем уроки - очищаем поле officer_id
+        cursor.execute("""
+            UPDATE lessons 
+            SET officer_id = NULL 
+            WHERE officer_id = ?
+        """, (teacher_id, ))
+        print(f"✅ Очищено поле officer_id в {cursor.rowcount} уроках")
+        
+        # 2. Удаляем преподавателя из squad_subject_loads
+        cursor.execute("""
+            SELECT subject_load_id, squad, officers 
+            FROM squad_subject_loads 
+            WHERE officers LIKE '%' || ? || '%'
+        """, (str(teacher_id),))
+        
+        loads = cursor.fetchall()
+        for row in loads:
+            officers = row["officers"]
+            if officers:
+                # Удаляем преподавателя из строки
+                officer_list = [o.strip() for o in officers.split("/") if o.strip()]
+                officer_list = [o for o in officer_list if o != str(teacher_id)]
+                new_officers = "/".join(officer_list)
+                
+                cursor.execute("""
+                    UPDATE squad_subject_loads 
+                    SET officers = ? 
+                    WHERE subject_load_id = ? AND squad = ?
+                """, (new_officers, row["subject_load_id"], row["squad"]))
+        
+        print(f"✅ Преподаватель удален из {len(loads)} связок")
+        
+        # 3. Удаляем самого преподавателя
+        cursor.execute("DELETE FROM officers WHERE id = ?", (teacher_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        teacher_name = f"{teacher['surname']} {teacher['first_name']} {teacher['second_name']}"
+        return {"success": True, "message": f"Преподаватель {teacher_name} удален"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка удаления преподавателя: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления преподавателя: {str(e)}")
+
+@app.get("/teachers/{teacher_id}/available-connections")
+def get_available_connections(teacher_id: int):
+    """
+    Получить доступные связки для добавления преподавателя
+    """
+    try:
+        print(f"📊 Получение доступных связок для преподавателя ID={teacher_id}")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Связки, где преподавателя еще нет
+        cursor.execute("""
+            SELECT 
+                ssl.subject_load_id,
+                ssl.squad,
+                ssl.officers,
+                s.name as subject_name,
+                d.name as department_name,
+                st.type,
+                st.course,
+                sl.semester
+            FROM squad_subject_loads ssl
+            JOIN subject_loads sl ON ssl.subject_load_id = sl.id
+            JOIN subjects s ON sl.subject_id = s.id
+            JOIN departments d ON sl.department_id = d.id
+            JOIN squad_types st ON sl.squad_type_id = st.id
+            WHERE ssl.officers NOT LIKE '%' || ? || '%'
+            ORDER BY s.name, ssl.squad
+        """, (str(teacher_id),))
+        
+        connections = []
+        for row in cursor.fetchall():
+            officer_ids = []
+            officer_names = []
+            
+            if row["officers"]:
+                officer_ids = [id.strip() for id in row["officers"].split("/") if id.strip()]
+                
+                # Получаем имена текущих преподавателей
+                if officer_ids:
+                    placeholders = ','.join('?' * len(officer_ids))
+                    cursor.execute(f"""
+                        SELECT first_name, second_name, surname
+                        FROM officers
+                        WHERE id IN ({placeholders})
+                        ORDER BY surname, first_name
+                    """, officer_ids)
+                    
+                    for officer in cursor.fetchall():
+                        officer_names.append(f"{officer['surname']} {officer['first_name']} {officer['second_name']}")
+            
+            connections.append({
+                "subject_load_id": row["subject_load_id"],
+                "squad": row["squad"],
+                "officers": officer_ids,
+                "officer_names": officer_names,
+                "subject_name": row["subject_name"],
+                "department_name": row["department_name"],
+                "type": row["type"],
+                "course": row["course"],
+                "semester": row["semester"]
+            })
+        
+        conn.close()
+        
+        print(f"✅ Найдено доступных связок: {len(connections)}")
+        return connections
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения доступных связок: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения доступных связок: {str(e)}")
+
+@app.put("/teachers/subject-loads/{subject_load_id}/squads/{squad_number}/officers")
+def update_connection_officers(subject_load_id: int, squad_number: str, data: dict):
+    """
+    Обновить список преподавателей в связке нагрузка-взвод
+    """
+    try:
+        print(f"🔄 Обновление преподавателей в связке {subject_load_id}-{squad_number}")
+        
+        officers = data.get("officers", [])
+        
+        # Валидация: все преподаватели должны существовать
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        for officer_id in officers:
+            cursor.execute("SELECT id FROM officers WHERE id = ?", (officer_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=400, detail=f"Преподаватель с ID={officer_id} не найден")
+        
+        # Формируем строку преподавателей
+        officers_str = "/".join(str(officer_id) for officer_id in officers)
+        
+        # Проверка существования связки
+        cursor.execute("""
+            SELECT subject_load_id FROM squad_subject_loads 
+            WHERE subject_load_id = ? AND squad = ?
+        """, (subject_load_id, squad_number))
+        
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Связка не найдена")
+        
+        # Обновляем преподавателей
+        cursor.execute("""
+            UPDATE squad_subject_loads 
+            SET officers = ? 
+            WHERE subject_load_id = ? AND squad = ?
+        """, (officers_str, subject_load_id, squad_number))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"success": True, "message": "Преподаватели обновлены"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка обновления преподавателей: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления преподавателей: {str(e)}")
+
+
 # Запуск сервера
 if __name__ == "__main__":
     import uvicorn

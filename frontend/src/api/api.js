@@ -343,3 +343,65 @@ export const audienceApi = {
     return response.json();
   },
 };
+
+
+export const teachersApi = {
+  // Получить всех преподавателей
+  async getTeachers() {
+    const response = await fetch(`${API_BASE}/teachers`);
+    return response.json();
+  },
+
+  // Получить детали преподавателя со связками
+  async getTeacherDetails(teacherId) {
+    const response = await fetch(`${API_BASE}/teachers/${teacherId}`);
+    return response.json();
+  },
+
+  // Добавить преподавателя
+  async addTeacher(teacherData) {
+    const response = await fetch(`${API_BASE}/teachers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(teacherData),
+    });
+    return response.json();
+  },
+
+  // Обновить преподавателя
+  async updateTeacher(teacherId, teacherData) {
+    const response = await fetch(`${API_BASE}/teachers/${teacherId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(teacherData),
+    });
+    return response.json();
+  },
+
+  // Удалить преподавателя
+  async deleteTeacher(teacherId) {
+    const response = await fetch(`${API_BASE}/teachers/${teacherId}`, {
+      method: 'DELETE',
+    });
+    return response.json();
+  },
+
+  // Получить доступные связки для добавления преподавателя
+  async getAvailableConnections(teacherId) {
+    const response = await fetch(`${API_BASE}/teachers/${teacherId}/available-connections`);
+    return response.json();
+  },
+
+  // Обновить преподавателей в связке
+  async updateConnectionOfficers(subjectLoadId, squadNumber, data) {
+    const response = await fetch(
+      `${API_BASE}/teachers/subject-loads/${subjectLoadId}/squads/${squadNumber}/officers`, 
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }
+    );
+    return response.json();
+  },
+};
