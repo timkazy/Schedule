@@ -10,12 +10,15 @@ from dotenv import load_dotenv
 
 load_dotenv('config.env')
 
-# databases_path = os.getenv('DATABASES_PATH')
-# db_path = os.getenv('DATABASES_PATH') + '/' + os.getenv('DATABASE_NAME')
+# Работа с относительными путями
+from pathlib import Path
+BASE_DIR = Path(__file__).parent.parent
+databases_path = BASE_DIR / "databases"
+db_path = databases_path / "database.db"
 
 # Указываем абсолютные пути напрямую
-databases_path = "/home/user/programming/university/semester7/Schedule/databases"
-db_path = "/home/user/programming/university/semester7/Schedule/databases/database.db"
+# databases_path = "/home/user/programming/university/semester7/Schedule/databases"
+# db_path = "/home/user/programming/university/semester7/Schedule/databases/database.db"
 
 if not os.path.exists(databases_path):
     os.makedirs(databases_path)

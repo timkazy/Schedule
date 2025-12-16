@@ -6,6 +6,6 @@ backend/http/*pycache*
 backend/schedule.db
 
 venv/
-databases/*
+backend/databases/*
 ./*.xlsx
 ./*.xls

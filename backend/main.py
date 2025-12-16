@@ -33,8 +33,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Прямой путь к БД
-DB_PATH = "/home/user/programming/university/semester7/Schedule/databases/database.db"
+# Работа с относительными путями
+BASE_DIR = Path(__file__).parent
+DB_PATH = BASE_DIR / "databases" / "database.db"
+
+# DB_PATH = "/home/user/programming/university/semester7/Schedule/databases/database.db"
 print(f"📂 Путь к БД: {DB_PATH}")
 
 # Функция для подключения к БД

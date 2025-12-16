@@ -10,8 +10,10 @@ from dotenv import load_dotenv
 
 load_dotenv('config.env')
 
-databases_path = os.getenv('DATABASES_PATH')
-db_path = os.path.join(databases_path, 'schedule.db') if databases_path else 'schedule.db'
+# Работа с относительными путями
+from pathlib import Path
+BASE_DIR = Path(__file__).parent.parent
+db_path = BASE_DIR / "databases" / "database.db"
 conn: typing.Optional[sqlite3.Connection] = sqlite3.connect(db_path)
 
 def is_audience_available(audience: int, date: str, less_number: int) -> bool:
