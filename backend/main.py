@@ -1032,6 +1032,142 @@ def get_subject_loads():
         print(f"❌ Ошибка получения нагрузок: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения нагрузок: {str(e)}")
 
+# ---------------------------------------------------------------------------
+# 🔹 GET /disciplines/platoon-loads/{platoon_number}
+# ---------------------------------------------------------------------------
+@app.get("/disciplines/platoon-loads/{platoon_number}")
+def get_platoon_loads(platoon_number: str):
+    """
+    Получить все нагрузки, привязанные к взводу
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Получаем все нагрузки, привязанные к взводу
+        cursor.execute("""
+            SELECT 
+                sl.id,
+                s.name as subject_name,
+                d.name as department_name,
+                st.type,
+                st.course,
+                sl.semester,
+                ssl.officers,
+                GROUP_CONCAT(shlc.hours_count) as total_hours
+            FROM squad_subject_loads ssl
+            JOIN subject_loads sl ON ssl.subject_load_id = sl.id
+            JOIN subjects s ON sl.subject_id = s.id
+            JOIN departments d ON sl.department_id = d.id
+            JOIN squad_types st ON sl.squad_type_id = st.id
+            LEFT JOIN subject_hours_load_count shlc ON sl.id = shlc.subject_load_id
+            WHERE ssl.squad = ?
+            GROUP BY sl.id
+            ORDER BY s.name
+        """, (platoon_number,))
+        
+        loads = cursor.fetchall()
+        
+        result = []
+        for row in loads:
+            # Парсим преподавателей
+            officers = []
+            if row["officers"]:
+                officers = [int(id.strip()) for id in row["officers"].split("/") if id.strip()]
+            
+            # Получаем часы нагрузки
+            cursor.execute("""
+                SELECT 
+                    shlc.lesson_type_id,
+                    lt.name as lesson_type_name,
+                    shlc.hours_count,
+                    shlc.audiences
+                FROM subject_hours_load_count shlc
+                JOIN lesson_types lt ON shlc.lesson_type_id = lt.id
+                WHERE shlc.subject_load_id = ?
+            """, (row["id"],))
+            
+            hours_load = cursor.fetchall()
+            
+            result.append({
+                "id": row["id"],
+                "subject_name": row["subject_name"],
+                "department_name": row["department_name"],
+                "type": row["type"],
+                "course": row["course"],
+                "semester": row["semester"],
+                "officers": officers,
+                "total_hours": sum([h["hours_count"] for h in hours_load]) if hours_load else 0,
+                "hours_load": [dict(h) for h in hours_load]
+            })
+        
+        conn.close()
+        return result
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения нагрузок взвода: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения нагрузок взвода: {str(e)}")
+
+# ---------------------------------------------------------------------------
+# 🔹 GET /disciplines/available-loads-for-platoon
+# ---------------------------------------------------------------------------
+@app.get("/disciplines/available-loads-for-platoon")
+def get_available_loads_for_platoon(platoon_number: str):
+    """
+    Получить нагрузки, доступные для привязки к взводу
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Получаем тип взвода
+        cursor.execute("""
+            SELECT squad_type_id, department_id
+            FROM squads
+            WHERE number = ?
+        """, (platoon_number,))
+        
+        platoon = cursor.fetchone()
+        if not platoon:
+            raise HTTPException(status_code=404, detail="Взвод не найден")
+        
+        squad_type_id = platoon["squad_type_id"]
+        department_id = platoon["department_id"]
+        
+        # Получаем нагрузки, которые еще не привязаны к этому взводу
+        cursor.execute("""
+            SELECT 
+                sl.id,
+                s.name as subject_name,
+                d.name as department_name,
+                st.type,
+                st.course,
+                sl.semester
+            FROM subject_loads sl
+            JOIN subjects s ON sl.subject_id = s.id
+            JOIN departments d ON sl.department_id = d.id
+            JOIN squad_types st ON sl.squad_type_id = st.id
+            WHERE sl.squad_type_id = ? 
+            AND sl.department_id = ?
+            AND sl.id NOT IN (
+                SELECT subject_load_id 
+                FROM squad_subject_loads 
+                WHERE squad = ?
+            )
+            ORDER BY s.name, st.course, sl.semester
+        """, (squad_type_id, department_id, platoon_number))
+        
+        loads = cursor.fetchall()
+        conn.close()
+        
+        return [dict(row) for row in loads]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ошибка получения доступных нагрузок: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения доступных нагрузок: {str(e)}")
+
 @app.get("/disciplines/subject-loads/{subject_load_id}")
 def get_subject_load_details(subject_load_id: int):
     """
@@ -1117,12 +1253,16 @@ def get_subject_load_details(subject_load_id: int):
         hours_rows = cursor.fetchall()
         hours_load = []
         for row in hours_rows:
-            audiences = [a.strip() for a in row["audiences"].split("/")] if row["audiences"] else []
+            audiences = []
+            if row["audiences"]:
+                # Преобразуем строку в массив
+                audiences = [a.strip() for a in row["audiences"].split("/") if a.strip()]
+            
             hours_load.append({
                 "lesson_type_id": row["lesson_type_id"],
                 "lesson_type_name": row["lesson_type_name"],
                 "hours_count": row["hours_count"],
-                "audiences": audiences
+                "audiences": audiences  # Теперь это массив, а не строка
             })
         
         # Темы

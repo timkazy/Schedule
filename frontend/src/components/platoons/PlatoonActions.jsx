@@ -27,7 +27,9 @@ const PlatoonActions = ({ departmentId, onPlatoonAdded }) => {
   };
 
   const handleInputChange = (field, value) => {
+    console.log("field, value: ", field, value);
     setNewPlatoonData(prev => ({ ...prev, [field]: field === 'number' ? value : parseInt(value)}));
+    console.log(newPlatoonData);
   };
 
   const handleSubmit = async (e) => {

@@ -18,11 +18,11 @@ function MainMenu() {
     { id: 1, name: "Таблица", icon: tableIcon, link: "/" },
     { id: 2, name: "Нагрузки", icon: subjectLoadIcon, link: "/disciplines" },
     { id: 3, name: "Взвода", icon: platoonIcon, link: "/platoons" },
-    { id: 4, name: "Предметы", icon: subjectIcon, link: "/subjects" },
-    { id: 5, name: "Аудитории", icon: audienceIcon, link: "/audience" },
-    { id: 6, name: "Офицеры", icon: officerIcon, link: "/teachers" },
-    { id: 7, name: "Кафедры", icon: departmentsIcon, link: "/departments" },
-    // { id: 8, name: "Настройки", icon: settingsIcon, link: "/settings" },
+    { id: 4, name: "Кафедры", icon: departmentsIcon, link: "/departments" },
+    { id: 5, name: "Офицеры", icon: officerIcon, link: "/teachers" },
+    { id: 6, name: "Предметы", icon: subjectIcon, link: "/subjects" },
+    { id: 7, name: "Аудитории", icon: audienceIcon, link: "/audience" },
+    { id: 8, name: "Настройки", icon: settingsIcon, link: "/settings" },
   ];
 
   const handleNavigation = (e, item) => {
