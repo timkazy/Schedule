@@ -1,0 +1,204 @@
+import { Link, useLocation } from "react-router-dom";
+import { useEdit } from "../../context/useEdit";
+import { exportToExcel } from '../../utils/excelExport';
+
+// Импорт иконок
+import tableIcon from "../../assets/icons/table.svg";
+import platoonIcon from "../../assets/icons/platoon.svg";
+import officerIcon from "../../assets/icons/officer.svg";
+import subjectIcon from "../../assets/icons/subject.svg";
+import subjectLoadIcon from "../../assets/icons/subject_load.svg";
+import audienceIcon from "../../assets/icons/audience.svg";
+import settingsIcon from "../../assets/icons/settings.svg";
+import departmentsIcon from "../../assets/icons/department.svg";
+import editIcon from "../../assets/icons/edit.svg";
+import addIcon from "../../assets/icons/add.svg";
+import printIcon from "../../assets/icons/print.svg";
+
+function Menu() {
+    const location = useLocation();
+    const { isEditing, hasChanges, setIsEditing, setHasChanges, scheduleData } = useEdit();
+
+    // Навигационные элементы сгруппированы по визуальным блокам
+    const navigationGroups = [
+        // Первая группа: (1, 2, 3, 4)
+        [
+            { id: 1, name: "Таблица", icon: tableIcon, link: "/", type: "link" },
+            { id: 2, name: "Нагрузки", icon: subjectLoadIcon, link: "/disciplines", type: "link" },
+            { id: 3, name: "Взвода", icon: platoonIcon, link: "/platoons", type: "link" },
+            { id: 4, name: "Кафедры", icon: departmentsIcon, link: "/departments", type: "link" },
+        ],
+        // Вторая группа: (5, 6, 7)
+        [
+            { id: 5, name: "Офицеры", icon: officerIcon, link: "/teachers", type: "link" },
+            { id: 6, name: "Предметы", icon: subjectIcon, link: "/subjects", type: "link" },
+            { id: 7, name: "Аудитории", icon: audienceIcon, link: "/audience", type: "link" },
+        ],
+        // Третья группа: (8)
+        [
+            { id: 8, name: "Настройки", icon: settingsIcon, link: "/settings", type: "link" },
+        ],
+    ];
+
+    // Функциональные элементы сгруппированы по визуальным блокам
+    const actionGroups = [
+        // Первая группа: (edit, add)
+        [
+            {
+                id: "edit",
+                name: isEditing ? "Выйти из режима редактирования" : "Редактировать",
+                icon: editIcon,
+                action: () => setIsEditing((prev) => !prev),
+                type: "button",
+            },
+            {
+                id: "add",
+                name: "Добавить",
+                icon: addIcon,
+                action: () => console.log("Добавить элемент"),
+                type: "button",
+            },
+        ],
+        // Вторая группа: (print)
+        [
+            {
+                id: "print",
+                name: "Экспорт в Excel",
+                icon: printIcon,
+                action: () => {
+                    if (!scheduleData || scheduleData.length === 0) {
+                        alert('Нет данных для экспорта');
+                        return;
+                    }
+
+                    const filename = `Расписание.xlsx`;
+                    try {
+                        const success = exportToExcel(scheduleData, filename);
+
+                        if (!success) {
+                            alert('Ошибка при экспорте. Проверьте консоль для деталей.');
+                        }
+                    } catch (error) {
+                        console.error('Ошибка при экспорте:', error);
+                        alert('Произошла ошибка при экспорте: ' + error.message);
+                    }
+                },
+                type: "button",
+            },
+        ],
+    ];
+
+    const handleNavigation = (e, item) => {
+        if (isEditing && hasChanges && location.pathname !== item.link) {
+            e.preventDefault();
+            if (window.confirm("У вас есть несохранённые изменения. Выйти без сохранения?")) {
+                setIsEditing(false);
+                setHasChanges(false);
+            } else {
+                return;
+            }
+        }
+    };
+
+    return (
+        <div className="fixed left-4 top-[47%] transform -translate-y-72 z-50">
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-2 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+                <div className="flex flex-col space-y-5 py-1">
+                    {navigationGroups[0].map((item) => (
+                        <Link
+                            key={item.id}
+                            to={item.link}
+                            onClick={(e) => handleNavigation(e, item)}
+                            className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200 group relative
+              ${location.pathname === item.link
+                                    ? "opacity-100"
+                                    : "opacity-60 hover:opacity-100"
+                                }`}
+                            title={item.name}
+                        >
+                            <img src={item.icon} alt={item.name} className="w-6 h-6" />
+                        </Link>
+                    ))}
+                </div>
+            </div>
+
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-2 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+                <div className="flex flex-col space-y-5 py-1">
+                    {navigationGroups[1].map((item) => (
+                        <Link
+                            key={item.id}
+                            to={item.link}
+                            onClick={(e) => handleNavigation(e, item)}
+                            className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200 group relative
+              ${location.pathname === item.link
+                                    ? "opacity-100"
+                                    : "opacity-60 hover:opacity-100"
+                                }`}
+                            title={item.name}
+                        >
+                            <img src={item.icon} alt={item.name} className="w-6 h-6" />
+                        </Link>
+                    ))}
+                </div>
+            </div>
+
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-2 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+                <div className="flex flex-col space-y-5">
+                    <Link
+                        to={navigationGroups[2][0].link}
+                        onClick={(e) => handleNavigation(e, navigationGroups[2][0])}
+                        className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200 group relative
+            ${location.pathname === navigationGroups[2][0].link
+                                ? "opacity-100"
+                                : "opacity-60 hover:opacity-100"
+                            }`}
+                        title={navigationGroups[2][0].name}
+                    >
+                        <img src={navigationGroups[2][0].icon} alt={navigationGroups[2][0].name} className="w-6 h-6" />
+                    </Link>
+                </div>
+            </div>
+
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-2 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+                <div className="flex flex-col space-y-5 py-1">
+                    {actionGroups[0].map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={item.action}
+                            className={`flex items-center justify-center w-8 h-8 rounded-md transition-all duration-200 group relative 
+              ${item.id === "edit"
+                                    ? "opacity-90 hover:opacity-100"
+                                    : isEditing
+                                        ? "opacity-50 cursor-not-allowed"
+                                        : "opacity-80 hover:opacity-100"
+                                }`}
+                            disabled={isEditing && item.id !== "edit"}
+                            title={item.name}
+                        >
+                            <img src={item.icon} alt={item.name} className="w-6 h-6" />
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+                <div className="flex flex-col space-y-5">
+                    <button
+                        onClick={actionGroups[1][0].action}
+                        className={`flex items-center justify-center w-8 h-8 rounded-md transition-all duration-200 group relative 
+            ${isEditing
+                                ? "opacity-50 cursor-not-allowed"
+                                : "opacity-80 hover:opacity-100"
+                            }`}
+                        disabled={isEditing}
+                        title={actionGroups[1][0].name}
+                    >
+                        <img src={actionGroups[1][0].icon} alt={actionGroups[1][0].name} className="w-6 h-6" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default Menu;

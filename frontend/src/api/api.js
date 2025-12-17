@@ -79,10 +79,17 @@ export const scheduleApi = {
 };
 
 // ------ PLATOONS ------
+// ------ PLATOONS ------
 export const platoonApi = {
   // Кафедры
   async getDepartments() {
     const response = await fetch(`${API_BASE}/platoons/departments`);
+    return response.json();
+  },
+
+  // Все взводы (без фильтра)
+  async getAllPlatoons() {
+    const response = await fetch(`${API_BASE}/platoons`);
     return response.json();
   },
 
@@ -94,7 +101,6 @@ export const platoonApi = {
 
   // Детали взвода
   async getPlatoonDetails(platoonNumber) {
-    console.log()
     const response = await fetch(`${API_BASE}/platoons/${platoonNumber}`);
     return response.json();
   },
@@ -140,6 +146,67 @@ export const platoonApi = {
   // Типы взводов
   async getSquadTypes() {
     const response = await fetch(`${API_BASE}/platoons/squad-types`);
+    return response.json();
+  },
+};
+
+// ------ DISCIPLINES (для нагрузок) ------
+export const disciplinesApi = {
+  // Получить нагрузки взвода
+  async getPlatoonLoads(platoonNumber) {
+    const response = await fetch(`${API_BASE}/disciplines/platoon-loads/${platoonNumber}`);
+    return response.json();
+  },
+
+  // Получить доступные нагрузки для взвода
+  async getAvailableLoadsForPlatoon(platoonNumber) {
+    const response = await fetch(`${API_BASE}/disciplines/available-loads-for-platoon?platoon_number=${platoonNumber}`);
+    return response.json();
+  },
+
+  // Привязать нагрузку к взводу
+  async addLoadToPlatoon(platoonNumber, loadId, data) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${loadId}/squads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ squad: platoonNumber, ...data }),
+    });
+    return response.json();
+  },
+
+  // Обновить привязку нагрузки к взводу
+  async updatePlatoonLoad(platoonNumber, loadId, data) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${loadId}/squads/${platoonNumber}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  // Отвязать нагрузку от взвода
+  async deletePlatoonLoad(platoonNumber, loadId) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${loadId}/squads/${platoonNumber}`, {
+      method: 'DELETE',
+    });
+    return response.json();
+  },
+
+  // Получить преподавателей
+  async getOfficers() {
+    const response = await fetch(`${API_BASE}/disciplines/officers`);
+    return response.json();
+  },
+
+  // Получить все нагрузки
+  async getAllLoads() {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads`);
+    return response.json();
+  },
+
+  // Получить детали нагрузки
+  async getLoadDetails(loadId) {
+    const response = await fetch(`${API_BASE}/disciplines/subject-loads/${loadId}`);
     return response.json();
   },
 };

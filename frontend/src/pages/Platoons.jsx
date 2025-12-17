@@ -4,7 +4,8 @@ import PlatoonInfo from "../components/platoons/PlatoonInfo";
 import DepartmentSelector from "../components/platoons/DepartmentSelector";
 import PlatoonSelector from "../components/platoons/PlatoonSelector";
 import PlatoonActions from "../components/platoons/PlatoonActions";
-import { platoonApi } from "../api/api";
+import PlatoonLoads from "../components/platoons/PlatoonLoads";
+import { platoonApi, disciplinesApi } from "../api/api";
 import "../components/platoons/Platoons.css";
 
 function Platoons() {
@@ -14,6 +15,7 @@ function Platoons() {
   const [platoons, setPlatoons] = useState([]);
   const [selectedPlatoon, setSelectedPlatoon] = useState(null);
   const [platoonData, setPlatoonData] = useState(null);
+  const [platoonLoads, setPlatoonLoads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -22,15 +24,9 @@ function Platoons() {
     fetchDepartments();
   }, []);
 
-  // Загрузка взводов при выборе кафедры
+  // Загрузка взводов (всех или по кафедре)
   useEffect(() => {
-    if (selectedDepartment) {
-      fetchPlatoonsByDepartment(selectedDepartment.id);
-    } else {
-      setPlatoons([]);
-      setSelectedPlatoon(null);
-      setPlatoonData(null);
-    }
+    fetchPlatoons(selectedDepartment?.id);
   }, [selectedDepartment]);
 
   // Загрузка данных взвода при выборе
@@ -39,8 +35,16 @@ function Platoons() {
       fetchPlatoonData(selectedPlatoon.number);
     } else {
       setPlatoonData(null);
+      setPlatoonLoads([]);
     }
   }, [selectedPlatoon]);
+
+  // Загрузка нагрузок взвода
+  useEffect(() => {
+    if (selectedPlatoon) {
+      fetchPlatoonLoads(selectedPlatoon.number);
+    }
+  }, [selectedPlatoon, isEditing]);
 
   const fetchDepartments = async () => {
     try {
@@ -56,10 +60,17 @@ function Platoons() {
     }
   };
 
-  const fetchPlatoonsByDepartment = async (departmentId) => {
+  const fetchPlatoons = async (departmentId) => {
     try {
       setLoading(true);
-      const data = await platoonApi.getPlatoonsByDepartment(departmentId);
+      let data;
+      if (departmentId) {
+        // Загрузка по кафедре
+        data = await platoonApi.getPlatoonsByDepartment(departmentId);
+      } else {
+        // Загрузка всех взводов
+        data = await platoonApi.getAllPlatoons();
+      }
       setPlatoons(data);
       setError(null);
     } catch (err) {
@@ -73,18 +84,33 @@ function Platoons() {
   const fetchPlatoonData = async (platoonNumber) => {
     try {
       setLoading(true);
-
       const data = await platoonApi.getPlatoonDetails(platoonNumber);
       setPlatoonData(data);
       
-      console.log("platoons page data: ", data);
-
+      // Автоматически выбираем кафедру взвода
+      if (data.department_id && !selectedDepartment) {
+        const dept = departments.find(d => d.id === data.department_id);
+        if (dept) {
+          setSelectedDepartment(dept);
+        }
+      }
+      
       setError(null);
     } catch (err) {
       setError("Ошибка загрузки данных взвода");
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPlatoonLoads = async (platoonNumber) => {
+    try {
+      const data = await disciplinesApi.getPlatoonLoads(platoonNumber);
+      setPlatoonLoads(data);
+    } catch (err) {
+      console.error('Ошибка загрузки нагрузок взвода:', err);
+      setPlatoonLoads([]);
     }
   };
 
@@ -104,10 +130,23 @@ function Platoons() {
       await platoonApi.deletePlatoon(selectedPlatoon.number);
       setSelectedPlatoon(null);
       setPlatoonData(null);
-      fetchPlatoonsByDepartment(selectedDepartment.id); // Обновляем список
+      setPlatoonLoads([]);
+      fetchPlatoons(selectedDepartment?.id);
     } catch (err) {
       setError("Ошибка удаления");
     }
+  };
+
+  const handleLoadAdded = () => {
+    fetchPlatoonLoads(selectedPlatoon.number);
+  };
+
+  const handleLoadUpdated = () => {
+    fetchPlatoonLoads(selectedPlatoon.number);
+  };
+
+  const handleLoadDeleted = () => {
+    fetchPlatoonLoads(selectedPlatoon.number);
   };
 
   return (
@@ -127,8 +166,14 @@ function Platoons() {
           <DepartmentSelector
             departments={departments}
             selectedDepartment={selectedDepartment}
-            onSelect={setSelectedDepartment}
+            onSelect={(dept) => {
+              setSelectedDepartment(dept);
+              setSelectedPlatoon(null);
+              setPlatoonData(null);
+              setPlatoonLoads([]);
+            }}
             disabled={loading}
+            includeAllOption={true}
           />
         </div>
 
@@ -139,9 +184,9 @@ function Platoons() {
             platoons={platoons}
             selectedPlatoon={selectedPlatoon}
             onSelect={setSelectedPlatoon}
-            disabled={loading || !selectedDepartment}
+            disabled={loading}
             isEditing={isEditing}
-            onUpdate={fetchPlatoonsByDepartment}
+            onUpdate={() => fetchPlatoons(selectedDepartment?.id)}
             departmentId={selectedDepartment?.id}
           />
         </div>
@@ -154,6 +199,17 @@ function Platoons() {
               isEditing={isEditing}
               onSave={handleSavePlatoon}
             />
+            
+            {/* Нагрузки взвода */}
+            {isEditing && (
+              <PlatoonLoads
+                platoonNumber={selectedPlatoon.number}
+                loads={platoonLoads}
+                onLoadAdded={handleLoadAdded}
+                onLoadUpdated={handleLoadUpdated}
+                onLoadDeleted={handleLoadDeleted}
+              />
+            )}
             
             {/* Кнопка удаления в режиме редактирования */}
             {isEditing && (
@@ -173,9 +229,7 @@ function Platoons() {
         <PlatoonActions
           departmentId={selectedDepartment?.id}
           onPlatoonAdded={() => {
-            if (selectedDepartment) {
-              fetchPlatoonsByDepartment(selectedDepartment.id);
-            }
+            fetchPlatoons(selectedDepartment?.id);
           }}
         />
       </div>

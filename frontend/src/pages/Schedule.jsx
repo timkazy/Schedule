@@ -16,14 +16,27 @@ function Schedule() {
   const [activeDay, setActiveDay] = useState(0);
 
   const dayTables =
-    activeDay === 0
-      ? scheduleData.flatMap((day) => day.platoons)
-      : scheduleData.find((day) => day.dayId === activeDay)?.platoons || [];
+  activeDay === 0
+    ? scheduleData
+        .filter(day => day.dayId >= 1 && day.dayId <= 7)
+        .sort((a, b) => a.dayId - b.dayId) // если нужна сортировка по порядку
+        .flatMap(day => day.platoons)
+    : scheduleData.find(day => day.dayId === activeDay)?.platoons || [];
 
   return (
     <>
       <EditMenu />
-      
+      {/* Попытка виньетки */}
+      {/* {isEditing && (
+        <div className="fixed inset-0 pointer-events-none z-30">
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-[radial-gradient(circle_at_top_left,_transparent_30%,_rgba(0,0,0,0.4)_70%)]"></div>
+          <div className="absolute  bottom-0 left-0 w-64 h-64 bg-[radial-gradient(circle_at_top_right,_transparent_30%,_rgba(0,0,0,0.4)_70%)]"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[radial-gradient(circle_at_bottom_left,_transparent_30%,_rgba(0,0,0,0.4)_70%)]"></div>
+          <div className="absolute top-0 left-0  w-64 h-64 bg-[radial-gradient(circle_at_bottom_right,_transparent_30%,_rgba(0,0,0,0.4)_70%)]"></div>
+        </div>
+      )}
+      */}
+
       <div className="relative">
         <div className="text-7xl font-bold text-center mt-10">Расписание</div>
         {!isEditing && <DaySelector selectedDay={activeDay} setSelectedDay={setActiveDay} />}
