@@ -1,7 +1,7 @@
 import { useState } from "react";
 import TimeCell from "./TimeCell";
 
-function TableTimeColumn({ isActive }) {
+function TableTimeColumn({ isActive, isCollapsed }) {
   const [timeMode, setTimeMode] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   
@@ -27,26 +27,50 @@ function TableTimeColumn({ isActive }) {
     setTimeout(() => {
       setTimeMode(prev => prev === 0 ? 1 : 0);
       setIsTransitioning(false);
-    }, 150); // Задержка для плавности
+    }, 150);
   };
 
   const currentTimeCells = timeCells[timeMode];
   const modeLabels = ["Полные", "Короткие"];
 
   return (
-    <div className={`flex flex-col border-l border-l-black ${isActive ? "border-dashed" : ""}`}>
-      <div className={`grid items-center text-center px-2 font-semibold h-[32px] border-b border-b-black ${isActive ? "border-dashed" : ""}`}>
-        <button
-          onClick={toggleTimeMode}
-          className="hover:bg-green-200 px-2 rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
-          title={`Переключить на ${modeLabels[timeMode === 0 ? 1 : 0]} занятия`}
-          disabled={isTransitioning}
-        >
-          Время
-        </button>
+    <div
+      className={`flex flex-col transition-all duration-700 ease-in-out border-l border-l-black ${
+        isActive ? "border-dashed" : ""
+      } ${
+        isCollapsed 
+          ? "w-0 opacity-100 pointer-events-none " 
+          : "w-[80px] opacity-100 "
+      }`}
+    >
+      {/* Заголовок колонки времени */}
+      <div 
+        className={`transition-all duration-700 ease-in-out ${
+          isCollapsed 
+            ? "opacity-0 overflow-hidden" 
+            : "opacity-100 h-[32px]"
+        }`}
+      >
+        <div className={`grid items-center text-center px-2 font-semibold h-[32px] border-b border-b-black ${isActive ? "border-dashed" : ""}`}>
+          <button
+            onClick={toggleTimeMode}
+            className="hover:bg-green-200 px-2 rounded-lg transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
+            title={`Переключить на ${modeLabels[timeMode === 0 ? 1 : 0]} занятия`}
+            disabled={isTransitioning || isCollapsed}
+          >
+            Время
+          </button>
+        </div>
       </div>
       
-      <div className="grid justify-items-center items-center text-center relative">
+      {/* Ячейки времени */}
+      <div 
+        className={`transition-all duration-700 ease-in-out h-[208px] ${
+          isCollapsed 
+            ? "opacity-0 overflow-hidden" 
+            : "opacity-100"
+        } grid justify-items-center items-center text-center relative`}
+      >
         <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}>
           {currentTimeCells.map((timeData, index) => (
             <TimeCell key={index} timeData={timeData} />

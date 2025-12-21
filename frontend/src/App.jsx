@@ -5,8 +5,6 @@ import { EditProvider } from "./context/EditContext";
 import { ActionPanelProvider } from "./context/ActionPanelContext";
 import ActionPanel from "./components/panels/ActionPanel";
 
-import MainMenu from "./components/menu/MainMenu";
-import AddMenu from "./components/menu/AddMenu";
 import Menu from "./components/menu/Menu";
 
 import Schedule from "./pages/Schedule";
@@ -24,10 +22,7 @@ function App() {
   return (
     <EditProvider>
       <ActionPanelProvider>
-        {/* Главное меню и режим редактирования переключаем через контекст */}
         <Menu />
-        {/* <MainMenu /> */}
-        {/* <AddMenu /> */}
         <ActionPanel />
 
         <div className="ml-20 mr-20">

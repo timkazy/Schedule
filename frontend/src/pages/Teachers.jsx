@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { useEdit } from '../context/useEdit';
 import TeacherSelector from '../components/teachers/TeacherSelector';
 import TeacherConnections from '../components/teachers/TeacherConnections';
-import TeacherActions from '../components/teachers/TeacherActions';
+import AddTeacherForm from '../components/teachers/AddTeacherForm';
 import { teachersApi } from '../api/api';
 import '../components/teachers/Teachers.css';
 
 function Teachers() {
-  const { isEditing } = useEdit();
+  const { isEditing, isAdding } = useEdit();
   const [teachers, setTeachers] = useState([]);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [teacherData, setTeacherData] = useState(null);
@@ -56,15 +56,6 @@ function Teachers() {
     }
   };
 
-  const handleAddTeacher = async (teacherData) => {
-    try {
-      await teachersApi.addTeacher(teacherData);
-      fetchTeachers();
-    } catch (err) {
-      throw err;
-    }
-  };
-
   const handleUpdateTeacher = async (teacherData) => {
     try {
       await teachersApi.updateTeacher(selectedTeacher.id, teacherData);
@@ -88,6 +79,36 @@ function Teachers() {
     }
   };
 
+  const handleTeacherAdded = () => {
+    // После добавления преподавателя сбрасываем состояние
+    setSelectedTeacher(null);
+    setTeacherData(null);
+    fetchTeachers();
+  };
+
+  // Если режим добавления - показываем форму добавления
+  if (isAdding) {
+    return (
+      <div className="teachers-page">
+        <div className="text-7xl font-bold text-center mt-10 mb-8">Добавление преподавателя</div>
+        
+        {error && (
+          <div className="error-message bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            {error}
+          </div>
+        )}
+
+        <div className="teachers-container max-w-4xl mx-auto">
+          <AddTeacherForm 
+            onTeacherAdded={handleTeacherAdded}
+            existingTeachers={teachers} // Передаем список существующих преподавателей
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Обычный режим просмотра/редактирования
   return (
     <div className="teachers-page">
       <div className="text-7xl font-bold text-center mt-10 mb-8">Преподаватели</div>
@@ -113,7 +134,7 @@ function Teachers() {
         </div>
 
         {/* Связки с нагрузками и взводами */}
-        {teacherData && (
+        {teacherData && selectedTeacher && (
           <>
             <TeacherConnections
               teacherId={selectedTeacher.id}
@@ -136,12 +157,14 @@ function Teachers() {
           </>
         )}
 
-        {/* Действия с преподавателями (добавление) */}
-        <TeacherActions
-          onTeacherAdded={() => {
-            fetchTeachers();
-          }}
-        />
+        {/* Сообщение, если преподаватель не выбран */}
+        {!selectedTeacher && teachers.length > 0 && (
+          <div className="mt-8 text-center py-10 bg-gray-50 rounded-lg">
+            <p className="text-gray-600 text-lg">
+              Выберите преподавателя из списка выше
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

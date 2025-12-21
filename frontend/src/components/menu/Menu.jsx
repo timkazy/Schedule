@@ -82,20 +82,63 @@ function Menu() {
     ];
 
     const handleNavigation = (e, item) => {
-        if (isEditing && hasChanges && location.pathname !== item.link) {
+        if ((isEditing || isAdding) && hasChanges && location.pathname !== item.link) {
             e.preventDefault();
             if (window.confirm("У вас есть несохранённые изменения. Выйти без сохранения?")) {
                 setIsEditing(false);
+                setIsAdding(false);
                 setHasChanges(false);
             } else {
                 return;
             }
         }
+        
+        // Если в режиме редактирования/добавления, разрешаем переход только по активному разделу
+        if ((isEditing || isAdding) && location.pathname !== item.link) {
+            e.preventDefault();
+            alert("Сначала выйдите из режима " + (isEditing ? "редактирования" : "добавления"));
+            return;
+        }
+    };
+
+    // Определяем, активен ли какой-либо режим
+    const isAnyModeActive = isEditing || isAdding;
+    
+    // Определяем, заблокирована ли кнопка
+    const isButtonDisabled = (buttonId) => {
+        if (isEditing && buttonId !== "edit") return true;
+        if (isAdding && buttonId !== "add") return true;
+        return false;
+    };
+
+    // Определяем стиль кнопки в зависимости от состояния
+    const getButtonStyle = (buttonId) => {
+        const isDisabled = isButtonDisabled(buttonId);
+        const isActive = (buttonId === "edit" && isEditing) || (buttonId === "add" && isAdding);
+        
+        if (isDisabled) {
+            return "opacity-70 cursor-not-allowed";
+        }
+        
+        if (isActive) {
+            return "opacity-100";
+        }
+        
+        return "opacity-85 hover:opacity-100";
+    };
+
+    // Определяем стиль для навигационных контейнеров
+    const getContainerStyle = () => {
+        if (isAnyModeActive) {
+            return "bg-opacity-70";
+        }
+        return "bg-opacity-95";
     };
 
     return (
         <div className="fixed left-4 top-[48%] transform -translate-y-72 z-50">
-            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+            {/* Первая группа навигации */}
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
                 <div className="flex flex-col space-y-6 py-1">
                     {navigationGroups[0].map((item) => (
                         <Link
@@ -103,11 +146,16 @@ function Menu() {
                             to={item.link}
                             onClick={(e) => handleNavigation(e, item)}
                             className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200 group relative
-              ${location.pathname === item.link
+                                ${location.pathname === item.link
                                     ? "opacity-100"
-                                    : "opacity-60 hover:opacity-100"
+                                    : isAnyModeActive
+                                        ? "opacity-70 cursor-not-allowed"
+                                        : "opacity-60 hover:opacity-100"
                                 }`}
-                            title={item.name}
+                            title={isAnyModeActive && location.pathname !== item.link 
+                                ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
+                                : item.name
+                            }
                         >
                             <img src={item.icon} alt={item.name} className="w-6 h-6" />
                         </Link>
@@ -115,7 +163,8 @@ function Menu() {
                 </div>
             </div>
 
-            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+            {/* Вторая группа навигации */}
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
                 <div className="flex flex-col space-y-6 py-1">
                     {navigationGroups[1].map((item) => (
                         <Link
@@ -123,11 +172,16 @@ function Menu() {
                             to={item.link}
                             onClick={(e) => handleNavigation(e, item)}
                             className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200 group relative
-              ${location.pathname === item.link
+                                ${location.pathname === item.link
                                     ? "opacity-100"
-                                    : "opacity-60 hover:opacity-100"
+                                    : isAnyModeActive
+                                        ? "opacity-70 cursor-not-allowed"
+                                        : "opacity-60 hover:opacity-100"
                                 }`}
-                            title={item.name}
+                            title={isAnyModeActive && location.pathname !== item.link 
+                                ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
+                                : item.name
+                            }
                         >
                             <img src={item.icon} alt={item.name} className="w-6 h-6" />
                         </Link>
@@ -135,55 +189,73 @@ function Menu() {
                 </div>
             </div>
 
-            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+            {/* Третья группа навигации */}
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
                 <div className="flex flex-col space-y-6">
                     <Link
                         to={navigationGroups[2][0].link}
                         onClick={(e) => handleNavigation(e, navigationGroups[2][0])}
                         className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200 group relative
-            ${location.pathname === navigationGroups[2][0].link
+                            ${location.pathname === navigationGroups[2][0].link
                                 ? "opacity-100"
-                                : "opacity-60 hover:opacity-100"
+                                : isAnyModeActive
+                                    ? "opacity-70 cursor-not-allowed"
+                                    : "opacity-60 hover:opacity-100"
                             }`}
-                        title={navigationGroups[2][0].name}
+                        title={isAnyModeActive && location.pathname !== navigationGroups[2][0].link 
+                            ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
+                            : navigationGroups[2][0].name
+                        }
                     >
                         <img src={navigationGroups[2][0].icon} alt={navigationGroups[2][0].name} className="w-6 h-6" />
                     </Link>
                 </div>
             </div>
 
-            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+            {/* Группа действий */}
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
                 <div className="flex flex-col space-y-6 py-2">
-                    {actionGroups[0].map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={item.action}
-                            className={`flex items-center justify-center w-8 h-8 rounded-md transition-all duration-200 group relative 
-              ${item.id === "edit"
-                                    ? "opacity-90 hover:opacity-100"
-                                    : isEditing
-                                        ? "opacity-50 cursor-not-allowed"
-                                        : "opacity-80 hover:opacity-100"
-                                }`}
-                            disabled={isEditing && item.id !== "edit"}
-                            title={item.name}
-                        >
-                            <img src={item.icon} alt={item.name} className="w-6 h-6" />
-                        </button>
-                    ))}
+                    {actionGroups[0].map((item) => {
+                        const isDisabled = isButtonDisabled(item.id);
+                        const isActive = (item.id === "edit" && isEditing) || (item.id === "add" && isAdding);
+                        
+                        return (
+                            <button
+                                key={item.id}
+                                onClick={isDisabled ? undefined : item.action}
+                                disabled={isDisabled}
+                                className={`flex items-center justify-center w-8 h-8 rounded-md transition-all duration-200 group relative ${getButtonStyle(item.id)}`}
+                                title={isDisabled 
+                                    ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
+                                    : item.name
+                                }
+                            >
+                                <img 
+                                    src={item.icon} 
+                                    alt={item.name} 
+                                    className={`w-6 h-6 ${isDisabled ? 'opacity-70' : ''}`} 
+                                />
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
-            {/* <div className={`bg-green-400 rounded-2xl p-2 shadow-lg transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+
+            {/* Экспорт в Excel (закомментирован) */}
+            {/* <div className={`bg-green-400 rounded-2xl p-2 shadow-lg transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
                 <div className="flex flex-col space-y-5">
                     <button
                         onClick={actionGroups[1][0].action}
                         className={`flex items-center justify-center w-8 h-8 rounded-md transition-all duration-200 group relative 
-            ${isEditing
-                                ? "opacity-50 cursor-not-allowed"
+                            ${isAnyModeActive
+                                ? "opacity-70 cursor-not-allowed"
                                 : "opacity-80 hover:opacity-100"
                             }`}
-                        disabled={isEditing}
-                        title={actionGroups[1][0].name}
+                        disabled={isAnyModeActive}
+                        title={isAnyModeActive 
+                            ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
+                            : actionGroups[1][0].name
+                        }
                     >
                         <img src={actionGroups[1][0].icon} alt={actionGroups[1][0].name} className="w-6 h-6" />
                     </button>

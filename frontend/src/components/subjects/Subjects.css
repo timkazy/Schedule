@@ -135,3 +135,245 @@
   margin-bottom: 8px;
   border: 1px solid #bae6fd;
 }
+
+/* Общие стили для форм добавления */
+.add-department-form,
+.add-teacher-form,
+.add-subject-form,
+.add-audience-form {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.add-department-form .space-y-4,
+.add-teacher-form .space-y-4,
+.add-subject-form .space-y-4,
+.add-audience-form .space-y-4 {
+  gap: 20px;
+}
+
+.add-department-form label,
+.add-teacher-form label,
+.add-subject-form label,
+.add-audience-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.add-department-form input,
+.add-teacher-form input,
+.add-subject-form input,
+.add-audience-form input,
+.add-department-form select,
+.add-teacher-form select,
+.add-subject-form select,
+.add-audience-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.add-department-form input:focus,
+.add-teacher-form input:focus,
+.add-subject-form input:focus,
+.add-audience-form input:focus,
+.add-department-form select:focus,
+.add-teacher-form select:focus,
+.add-subject-form select:focus,
+.add-audience-form select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Информационные панели */
+.bg-blue-50 {
+  background-color: #eff6ff;
+}
+
+.bg-blue-100 {
+  background-color: #dbeafe;
+}
+
+.border-blue-200 {
+  border-color: #bfdbfe;
+}
+
+.text-blue-800 {
+  color: #1e40af;
+}
+
+.text-blue-700 {
+  color: #1d4ed8;
+}
+
+/* Общие стили для всех форм добавления */
+.add-department-form,
+.add-teacher-form,
+.add-subject-form,
+.add-audience-form {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.add-department-form h3,
+.add-teacher-form h3,
+.add-subject-form h3,
+.add-audience-form h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.add-department-form p,
+.add-teacher-form p,
+.add-subject-form p,
+.add-audience-form p {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.add-department-form input,
+.add-teacher-form input,
+.add-subject-form input,
+.add-audience-form input,
+.add-department-form select,
+.add-teacher-form select,
+.add-subject-form select,
+.add-audience-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.add-department-form input:focus,
+.add-teacher-form input:focus,
+.add-subject-form input:focus,
+.add-audience-form input:focus,
+.add-department-form select:focus,
+.add-teacher-form select:focus,
+.add-subject-form select:focus,
+.add-audience-form select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Стили для информационных панелей */
+.info-panel {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.info-panel.blue {
+  background-color: #eff6ff;
+  border-color: #3b82f6;
+}
+
+.info-panel.yellow {
+  background-color: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.info-panel-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.info-panel-content {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Стили для кнопок */
+.form-buttons {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #2563eb;
+}
+
+.btn-primary:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #6b7280;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: #4b5563;
+}
+
+.btn-success {
+  background-color: #10b981;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-success:hover {
+  background-color: #059669;
+}
+
+/* Стили для примеров */
+.examples-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.example-item {
+  text-align: center;
+  padding: 8px;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}

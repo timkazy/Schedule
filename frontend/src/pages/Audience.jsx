@@ -2,24 +2,22 @@ import { useState, useEffect } from 'react';
 import { useEdit } from '../context/useEdit';
 import AudienceSelector from '../components/audience/AudienceSelector';
 import AudienceInfo from '../components/audience/AudienceInfo';
-import AudienceActions from '../components/audience/AudienceActions';
+import AddAudienceForm from '../components/audience/AddAudienceForm';
 import { audienceApi } from '../api/api';
 import '../components/audience/Audience.css';
 
 function Audience() {
-  const { isEditing } = useEdit();
+  const { isEditing, isAdding } = useEdit();
   const [audiences, setAudiences] = useState([]);
   const [selectedAudience, setSelectedAudience] = useState(null);
   const [audienceData, setAudienceData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Загрузка всех аудиторий при монтировании
   useEffect(() => {
     fetchAudiences();
   }, []);
 
-  // Загрузка данных аудитории при выборе
   useEffect(() => {
     if (selectedAudience) {
       fetchAudienceDetails(selectedAudience.number);
@@ -32,7 +30,6 @@ function Audience() {
     try {
       setLoading(true);
       const data = await audienceApi.getAudiences();
-      console.log("fetchAudiences: ", data);
       setAudiences(data);
       setError(null);
     } catch (err) {
@@ -47,7 +44,6 @@ function Audience() {
     try {
       setLoading(true);
       const data = await audienceApi.getAudienceDetails(audienceNumber);
-      console.log("fetchAudienceDetails: ", data);
       setAudienceData(data);
       setError(null);
     } catch (err) {
@@ -66,12 +62,41 @@ function Audience() {
       setSelectedAudience(null);
       setAudienceData(null);
       fetchAudiences();
-      console.log("handleDeleteAudience");
     } catch (err) {
       setError('Ошибка удаления');
     }
   };
 
+  const handleAudienceAdded = () => {
+    // После добавления аудитории сбрасываем состояние
+    setSelectedAudience(null);
+    setAudienceData(null);
+    fetchAudiences();
+  };
+
+  // Если режим добавления - показываем форму добавления
+  if (isAdding) {
+    return (
+      <div className="audience-page">
+        <div className="text-7xl font-bold text-center mt-10 mb-8">Добавление аудитории</div>
+        
+        {error && (
+          <div className="error-message bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            {error}
+          </div>
+        )}
+
+        <div className="audience-container max-w-4xl mx-auto">
+          <AddAudienceForm 
+            onAudienceAdded={handleAudienceAdded}
+            existingAudiences={audiences} // Передаем список существующих аудиторий
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Остальной код без изменений
   return (
     <div className="audience-page">
       <div className="text-7xl font-bold text-center mt-10 mb-8">Аудитории</div>
@@ -83,7 +108,6 @@ function Audience() {
       )}
 
       <div className="audience-container max-w-6xl mx-auto">
-        {/* Выбор аудитории */}
         <div className="control-row mb-8">
           <label className="control-label">Аудитория:</label>
           <AudienceSelector
@@ -95,8 +119,7 @@ function Audience() {
           />
         </div>
 
-        {/* Информация о выбранной аудитории */}
-        {audienceData && (
+        {audienceData && selectedAudience && (
           <>
             <AudienceInfo
               data={audienceData}
@@ -104,7 +127,6 @@ function Audience() {
               onUpdate={() => fetchAudienceDetails(selectedAudience.number)}
             />
 
-            {/* Кнопка удаления в режиме редактирования */}
             {isEditing && (
               <div className="mt-8 pt-6 border-t border-gray-200">
                 <button
@@ -118,12 +140,13 @@ function Audience() {
           </>
         )}
 
-        {/* Действия с аудиториями (добавление) */}
-        <AudienceActions
-          onAudienceAdded={() => {
-            fetchAudiences();
-          }}
-        />
+        {!selectedAudience && audiences.length > 0 && (
+          <div className="mt-8 text-center py-10 bg-gray-50 rounded-lg">
+            <p className="text-gray-600 text-lg">
+              Выберите аудиторию из списка выше
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

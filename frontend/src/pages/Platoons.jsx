@@ -4,7 +4,7 @@ import PlatoonInfo from "../components/platoons/PlatoonInfo";
 import DepartmentSelector from "../components/platoons/DepartmentSelector";
 import PlatoonSelector from "../components/platoons/PlatoonSelector";
 import PlatoonLoads from "../components/platoons/PlatoonLoads";
-import AddPlatoonForm from "../components/platoons/AddPlatoonForm"; // Новый компонент
+import AddPlatoonForm from "../components/platoons/AddPlatoonForm";
 import { platoonApi, disciplinesApi } from "../api/api";
 import "../components/platoons/Platoons.css";
 
@@ -179,103 +179,102 @@ function Platoons() {
           <AddPlatoonForm
             departments={departments}
             onPlatoonAdded={handlePlatoonAdded}
+            existingPlatoons={platoons} // Передаем список существующих взводов
           />
         </div>
       </div>
     );
   }
 
-// ... остальной код без изменений ...
-
-return (
-  <div className="platoons-page">
-    <div className="text-7xl font-bold text-center mt-10 mb-8">Взводы</div>
-    
-    {error && (
-      <div className="error-message bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-        {error}
-      </div>
-    )}
-
-    <div className="platoons-container max-w-6xl mx-auto">
-      {/* Строка 1: Выбор кафедры */}
-      <div className="control-row">
-        <label className="control-label">Кафедра:</label>
-        <DepartmentSelector
-          departments={departments}
-          selectedDepartment={selectedDepartment}
-          onSelect={(dept) => {
-            setSelectedDepartment(dept);
-            setSelectedPlatoon(null);
-            setPlatoonData(null);
-            setPlatoonLoads([]);
-          }}
-          disabled={loading}
-          includeAllOption={true}
-        />
-      </div>
-
-      {/* Строка 2: Выбор взвода */}
-      <div className="control-row">
-        <label className="control-label">Взвод:</label>
-        <PlatoonSelector
-          platoons={platoons}
-          selectedPlatoon={selectedPlatoon}
-          onSelect={setSelectedPlatoon}
-          disabled={loading}
-          isEditing={isEditing}
-          onUpdate={() => fetchPlatoons(selectedDepartment?.id)}
-          departmentId={selectedDepartment?.id}
-        />
-      </div>
-
-      {/* Данные выбранного взвода */}
-      {platoonData && selectedPlatoon && ( // Добавили проверку на selectedPlatoon
-        <>
-          <PlatoonInfo
-            data={platoonData}
-            isEditing={isEditing}
-            onSave={handleSavePlatoon}
-          />
-          
-          {/* Нагрузки взвода - ПОКАЗЫВАЕМ ВСЕГДА */}
-          <PlatoonLoads
-            platoonNumber={selectedPlatoon.number}
-            loads={platoonLoads}
-            onLoadAdded={handleLoadAdded}
-            onLoadUpdated={handleLoadUpdated}
-            onLoadDeleted={handleLoadDeleted}
-            isEditing={isEditing}
-          />
-          
-          {/* Кнопка удаления в режиме редактирования */}
-          {isEditing && (
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <button
-                onClick={handleDeletePlatoon}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded focus:outline-none focus:shadow-outline transition duration-150"
-              >
-                Удалить взвод
-              </button>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Сообщение, если взвод не выбран */}
-      {!selectedPlatoon && (
-        <div className="mt-8 text-center py-10 bg-gray-50 rounded-lg">
-          <p className="text-gray-600 text-lg">
-            {platoons.length > 0 
-              ? "Выберите взвод из списка выше"
-              : "Нет взводов для отображения"
-            }
-          </p>
+  return (
+    <div className="platoons-page">
+      <div className="text-7xl font-bold text-center mt-10 mb-8">Взводы</div>
+      
+      {error && (
+        <div className="error-message bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {error}
         </div>
       )}
+
+      <div className="platoons-container max-w-6xl mx-auto">
+        {/* Строка 1: Выбор кафедры */}
+        <div className="control-row">
+          <label className="control-label">Кафедра:</label>
+          <DepartmentSelector
+            departments={departments}
+            selectedDepartment={selectedDepartment}
+            onSelect={(dept) => {
+              setSelectedDepartment(dept);
+              setSelectedPlatoon(null);
+              setPlatoonData(null);
+              setPlatoonLoads([]);
+            }}
+            disabled={loading}
+            includeAllOption={true}
+          />
+        </div>
+
+        {/* Строка 2: Выбор взвода */}
+        <div className="control-row">
+          <label className="control-label">Взвод:</label>
+          <PlatoonSelector
+            platoons={platoons}
+            selectedPlatoon={selectedPlatoon}
+            onSelect={setSelectedPlatoon}
+            disabled={loading}
+            isEditing={isEditing}
+            onUpdate={() => fetchPlatoons(selectedDepartment?.id)}
+            departmentId={selectedDepartment?.id}
+          />
+        </div>
+
+        {/* Данные выбранного взвода */}
+        {platoonData && selectedPlatoon && (
+          <>
+            <PlatoonInfo
+              data={platoonData}
+              isEditing={isEditing}
+              onSave={handleSavePlatoon}
+            />
+            
+            {/* Нагрузки взвода - ПОКАЗЫВАЕМ ВСЕГДА */}
+            <PlatoonLoads
+              platoonNumber={selectedPlatoon.number}
+              loads={platoonLoads}
+              onLoadAdded={handleLoadAdded}
+              onLoadUpdated={handleLoadUpdated}
+              onLoadDeleted={handleLoadDeleted}
+              isEditing={isEditing}
+            />
+            
+            {/* Кнопка удаления в режиме редактирования */}
+            {isEditing && (
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <button
+                  onClick={handleDeletePlatoon}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded focus:outline-none focus:shadow-outline transition duration-150"
+                >
+                  Удалить взвод
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Сообщение, если взвод не выбран */}
+        {!selectedPlatoon && (
+          <div className="mt-8 text-center py-10 bg-gray-50 rounded-lg">
+            <p className="text-gray-600 text-lg">
+              {platoons.length > 0 
+                ? "Выберите взвод из списка выше"
+                : "Нет взводов для отображения"
+              }
+            </p>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
 }
 
 export default Platoons;

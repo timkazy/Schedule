@@ -5,12 +5,12 @@ import SubjectLoadInfo from '../components/disciplines/SubjectLoadInfo';
 import SubjectLoadSquads from '../components/disciplines/SubjectLoadSquads';
 import SubjectHoursLoad from '../components/disciplines/SubjectHoursLoad';
 import SubjectThemes from '../components/disciplines/SubjectThemes';
-import SubjectLoadActions from '../components/disciplines/SubjectLoadActions';
+import AddSubjectLoadForm from '../components/disciplines/AddSubjectLoadForm';
 import { disciplineApi } from '../api/api';
 import '../components/disciplines/Disciplines.css';
 
 function Disciplines() {
-  const { isEditing } = useEdit();
+  const { isEditing, isAdding } = useEdit();
   const [subjectLoads, setSubjectLoads] = useState([]);
   const [selectedSubjectLoad, setSelectedSubjectLoad] = useState(null);
   const [subjectLoadData, setSubjectLoadData] = useState(null);
@@ -83,6 +83,36 @@ function Disciplines() {
     }
   };
 
+  const handleSubjectLoadAdded = () => {
+    // После добавления нагрузки сбрасываем состояние
+    setSelectedSubjectLoad(null);
+    setSubjectLoadData(null);
+    fetchSubjectLoads();
+  };
+
+  // Если режим добавления - показываем форму добавления
+  if (isAdding) {
+    return (
+      <div className="disciplines-page">
+        <div className="text-7xl font-bold text-center mt-10 mb-8">Добавление нагрузки</div>
+        
+        {error && (
+          <div className="error-message bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            {error}
+          </div>
+        )}
+
+        <div className="disciplines-container max-w-6xl mx-auto">
+          <AddSubjectLoadForm 
+            onSubjectLoadAdded={handleSubjectLoadAdded}
+            existingSubjectLoads={subjectLoads} // Передаем список существующих нагрузок
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Обычный режим просмотра/редактирования
   return (
     <div className="disciplines-page">
       <div className="text-7xl font-bold text-center mt-10 mb-8">Дисциплины</div>
@@ -107,7 +137,7 @@ function Disciplines() {
         </div>
 
         {/* Информация о выбранной нагрузке */}
-        {subjectLoadData && (
+        {subjectLoadData && selectedSubjectLoad && (
           <>
             <SubjectLoadInfo
               data={subjectLoadData}
@@ -153,12 +183,14 @@ function Disciplines() {
           </>
         )}
 
-        {/* Действия с нагрузками (добавление) */}
-        <SubjectLoadActions
-          onSubjectLoadAdded={() => {
-            fetchSubjectLoads();
-          }}
-        />
+        {/* Сообщение, если нагрузка не выбрана */}
+        {!selectedSubjectLoad && subjectLoads.length > 0 && (
+          <div className="mt-8 text-center py-10 bg-gray-50 rounded-lg">
+            <p className="text-gray-600 text-lg">
+              Выберите нагрузку из списка выше
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

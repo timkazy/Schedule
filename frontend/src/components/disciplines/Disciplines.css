@@ -111,3 +111,79 @@
   color: #6b7280;
   font-style: italic;
 }
+
+/* Форма добавления нагрузки */
+.add-subject-load-form {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.add-subject-load-form .grid {
+  gap: 20px;
+}
+
+.add-subject-load-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.add-subject-load-form input,
+.add-subject-load-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.add-subject-load-form input:focus,
+.add-subject-load-form select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Улучшенные стили для страницы дисциплин */
+.disciplines-page {
+  min-height: 100vh;
+  padding-bottom: 50px;
+}
+
+.disciplines-container {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.control-label {
+  min-width: 150px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Отображение сообщения при отсутствии выбора */
+.no-selection-message {
+  text-align: center;
+  padding: 40px 20px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  border: 2px dashed #e5e7eb;
+  color: #6b7280;
+  font-size: 18px;
+  margin-top: 20px;
+}

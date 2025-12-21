@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { useEdit } from '../context/useEdit';
 import DepartmentSelector from '../components/departments/DepartmentSelector';
 import DepartmentInfo from '../components/departments/DepartmentInfo';
-import DepartmentActions from '../components/departments/DepartmentActions';
+import AddDepartmentForm from '../components/departments/AddDepartmentForm';
 import { departmentsApi } from '../api/api';
 import '../components/departments/Departments.css';
 
 function Departments() {
-  const { isEditing } = useEdit();
+  const { isEditing, isAdding } = useEdit();
   const [departments, setDepartments] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [departmentData, setDepartmentData] = useState(null);
@@ -56,15 +56,6 @@ function Departments() {
     }
   };
 
-  const handleAddDepartment = async (departmentData) => {
-    try {
-      await departmentsApi.addDepartment(departmentData);
-      fetchDepartments();
-    } catch (err) {
-      throw err;
-    }
-  };
-
   const handleUpdateDepartment = async (departmentData) => {
     try {
       await departmentsApi.updateDepartment(selectedDepartment.id, departmentData);
@@ -88,6 +79,36 @@ function Departments() {
     }
   };
 
+  const handleDepartmentAdded = () => {
+    // После добавления кафедры сбрасываем состояние
+    setSelectedDepartment(null);
+    setDepartmentData(null);
+    fetchDepartments();
+  };
+
+  // Если режим добавления - показываем форму добавления
+  if (isAdding) {
+    return (
+      <div className="departments-page">
+        <div className="text-7xl font-bold text-center mt-10 mb-8">Добавление кафедры</div>
+        
+        {error && (
+          <div className="error-message bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            {error}
+          </div>
+        )}
+
+        <div className="departments-container max-w-4xl mx-auto">
+          <AddDepartmentForm 
+            onDepartmentAdded={handleDepartmentAdded}
+            existingDepartments={departments} // Передаем список существующих кафедр
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Обычный режим просмотра/редактирования
   return (
     <div className="departments-page">
       <div className="text-7xl font-bold text-center mt-10 mb-8">Кафедры</div>
@@ -113,7 +134,7 @@ function Departments() {
         </div>
 
         {/* Информация о выбранной кафедре */}
-        {departmentData && (
+        {departmentData && selectedDepartment && (
           <>
             <DepartmentInfo
               data={departmentData}
@@ -134,12 +155,14 @@ function Departments() {
           </>
         )}
 
-        {/* Действия с кафедрами (добавление) */}
-        <DepartmentActions
-          onDepartmentAdded={() => {
-            fetchDepartments();
-          }}
-        />
+        {/* Сообщение, если кафедра не выбрана */}
+        {!selectedDepartment && departments.length > 0 && (
+          <div className="mt-8 text-center py-10 bg-gray-50 rounded-lg">
+            <p className="text-gray-600 text-lg">
+              Выберите кафедру из списка выше
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
