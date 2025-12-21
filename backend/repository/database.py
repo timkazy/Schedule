@@ -219,64 +219,95 @@ class DatabaseInitializer:
             (7, 'ТЭиРЭО')
         ]
 
-        self.subject_loads = [
-            (1, 2, 1, 1, 0),
-            (2, 3, 1, 1, 0),
-            (3, 4, 1, 1, 1),
-            (4, 7, 1, 1, 1)
+        # self.subject_loads = [
+        #     (1, 2, 1, 1, 0),
+        #     (2, 3, 1, 1, 0),
+        #     (3, 4, 1, 1, 1),
+        #     (4, 7, 1, 1, 1)
+        # ]
+
+        # self.squads = [
+        #     ("4342", 1, 1, 1, 2, 16),
+        #     ("4343", 1, 1, 2, 3, 17)
+        # ]
+
+        # self.subject_hours_load_count = [
+        #     (1, 1, 20, "208/210/227"),
+        #     (1, 2, 5, "208/210/227"),
+        #     (2, 1, 6, "208/210/227"),
+        #     (3, 3, 100, "104/313/123"),
+        #     (4, 4, 40, "209/212/226"),
+        # ]
+
+        self.officers = [
+            (1, 'Дмитрий', 'Орлов', 'Валерьевич'),
+            (2, 'Алексей', 'Овчинников', 'Владимирович'),
+            (3, 'Ситдиков', 'Венер', 'Мунирович'),
+            (4, 'Саяхов', 'Альберт', 'Рауфович'),
+            (5, 'Оглобличев', 'Максим', 'Алексеевич'),
+            (6, 'Ахмедянов', 'Сергей', 'Александрович'),
+            (7, 'Корнилов', 'Игорь', 'Владимирович'),
+            (8, 'Трофимов', 'Виталий', 'Анатольевич'),
+            (9, 'Яхин', 'Азат', 'Варисович'),
+            (10, 'Храмченко', 'Руслан', 'Иванович'),
+
+            (11, 'Сергеев', 'Алексей', 'Петрович'),
+            (12, 'Шартдинов', 'Айдар', 'Шайхлисламович'),
+            (13, 'Алказ', 'Вадим', 'Александрович'),
+            (14, 'Ступин', 'Евгений', 'Олегович'),
+            (15, 'Загиров', 'Наиль', 'Абдрахманович'),
+            (16, 'Кабиров', 'Ильнур', 'Равилевич'),
+            (17, 'Ворошилов', 'Сергей', 'Иванович'),
+            (18, 'Шиверских', 'Антон', 'Сергеевич'),
+            (19, 'Чернявский', 'Михаил', 'Анатольевич '),
+
+            (20, 'Веледов', 'Магир', 'Идриснаби'),
+            (21, 'Рзаев', 'Дмитрий', 'Олегович'),
+            (22, 'Садыков', 'Азамат', 'Камилевич'),
+            (23, 'Селуянов', 'Андрей', 'Александрович'),
+            (24, 'Мустафин', 'Марсель', 'Рафитович'),
+            (25, 'Воробьев', 'Николай', 'Александрович'),
+            (26, 'Файзуллин', 'Рамиль', 'Равильевич')
         ]
 
-        self.squads = [
-            ("4342", 1, 1, 1, 2, 16),
-            ("4343", 1, 1, 2, 3, 17)
-        ]
+        # self.squad_subject_loads = [
+        #     (1, "4342", "5/6/7"),
+        #     (1, "4343", "1/2/3"),
+        #     (2, "4342", "8/9/10"),
+        #     (2, "4343", "11/12/13"),
+        #     (3, "4343", "14/15/18"),
+        #     (4, "4343", "18/19/20"),
+        # ]
 
-        self.subject_hours_load_count = [
-            (1, 1, 20, "208/210/227"),
-            (1, 2, 5, "208/210/227"),
-            (2, 1, 6, "208/210/227"),
-            (3, 3, 100, "104/313/123"),
-            (4, 4, 40, "209/212/226"),
-        ]
-
-        self.squad_subject_loads = [
-            (1, "4342", "5/6/7"),
-            (1, "4343", "1/2/3"),
-            (2, "4342", "8/9/10"),
-            (2, "4343", "11/12/13"),
-            (3, "4343", "14/15/18"),
-            (4, "4343", "18/19/20"),
-        ]
-
-        self.themes = [
-            (1, 1, 1, 1, 1, 1),
-            (2, 1, 1, 1, 2, 1),
-            (3, 2, 1, 2, 1, 1),
-            (4, 2, 1, 2, 2, 1),
-            (5, 3, 3, 9, 1, 1),
-            (6, 3, 3, 9, 2, 1),
-            (7, 3, 3, 9, 3, 1),
-            (8, 4, 4, 4, 1, 1),
-            (9, 4, 4, 5, 1, 1),
-            (10, 4, 4, 5, 2, 1),
-        ]
+        # self.themes = [
+        #     (1, 1, 1, 1, 1, 1),
+        #     (2, 1, 1, 1, 2, 1),
+        #     (3, 2, 1, 2, 1, 1),
+        #     (4, 2, 1, 2, 2, 1),
+        #     (5, 3, 3, 9, 1, 1),
+        #     (6, 3, 3, 9, 2, 1),
+        #     (7, 3, 3, 9, 3, 1),
+        #     (8, 4, 4, 4, 1, 1),
+        #     (9, 4, 4, 5, 1, 1),
+        #     (10, 4, 4, 5, 2, 1),
+        # ]
 
     def fill_data(self):
         conn.executemany("INSERT INTO start_end_dates(start_0, end_0, start_1, end_1) VALUES((?), (?), (?), (?)) ON CONFLICT DO NOTHING", self.start_end_dates)
         conn.executemany("INSERT INTO lesson_types(id, name) VALUES((?), (?)) ON CONFLICT DO NOTHING", self.lesson_types)
         conn.executemany("INSERT INTO squad_types(id, type, course) VALUES((?), (?), (?)) ON CONFLICT DO NOTHING", self.squad_types)
         conn.executemany("INSERT INTO audiences(number) VALUES((?)) ON CONFLICT DO NOTHING", self.audiences)
+        conn.executemany("INSERT INTO officers(id, first_name, second_name, surname) VALUES((?), (?), (?), (?)) ON CONFLICT DO NOTHING", self.officers)
 
         conn.executemany("INSERT INTO subjects(id, name) VALUES(?, ?) ON CONFLICT DO NOTHING", self.subjects)
         conn.executemany("INSERT INTO departments(id, name) VALUES(?, ?) ON CONFLICT DO NOTHING", self.departments)
-        conn.executemany("INSERT INTO squads(number, department_id, squad_type_id, day, start_week, end_week) VALUES(?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING", self.squads)
-        conn.executemany("INSERT INTO subject_loads(id, subject_id, department_id, squad_type_id, semester) VALUES(?, ?, ?, ?, ?) ON CONFLICT DO NOTHING", self.subject_loads)
-        conn.executemany("INSERT INTO subject_hours_load_count(subject_load_id, lesson_type_id, hours_count, audiences) VALUES(?, ?, ?, ?) ON CONFLICT DO NOTHING", self.subject_hours_load_count)
-        conn.executemany("INSERT INTO squad_subject_loads(subject_load_id, squad, officers) VALUES(?, ?, ?) ON CONFLICT DO NOTHING", self.squad_subject_loads)
-        conn.executemany("INSERT INTO themes(id, subject_load_id, lesson_type_id, topic, subtopic, hours_count) VALUES(?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING", self.themes)
+        # conn.executemany("INSERT INTO squads(number, department_id, squad_type_id, day, start_week, end_week) VALUES(?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING", self.squads)
+        # conn.executemany("INSERT INTO subject_loads(id, subject_id, department_id, squad_type_id, semester) VALUES(?, ?, ?, ?, ?) ON CONFLICT DO NOTHING", self.subject_loads)
+        # conn.executemany("INSERT INTO subject_hours_load_count(subject_load_id, lesson_type_id, hours_count, audiences) VALUES(?, ?, ?, ?) ON CONFLICT DO NOTHING", self.subject_hours_load_count)
+        # conn.executemany("INSERT INTO squad_subject_loads(subject_load_id, squad, officers) VALUES(?, ?, ?) ON CONFLICT DO NOTHING", self.squad_subject_loads)
+        # conn.executemany("INSERT INTO themes(id, subject_load_id, lesson_type_id, topic, subtopic, hours_count) VALUES(?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING", self.themes)
 
         conn.commit()
-
 
 db_creator = DatabaseCreator()
 db_initializer = DatabaseInitializer()

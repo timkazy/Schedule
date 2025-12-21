@@ -10,7 +10,7 @@ const DaySelector = ({ selectedDay, setSelectedDay }) => {
   ];
 
   return (
-    <div className="flex items-center justify-center p-2 ">
+    <div className="flex items-center justify-center p-2 z-20 ">
       <div className="bg-gray-300 rounded-xl flex space-x-1 shadow-lg">
         {days.map((day) => (
           <button
