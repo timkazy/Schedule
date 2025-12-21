@@ -16,10 +16,6 @@ BASE_DIR = Path(__file__).parent.parent
 databases_path = BASE_DIR / "databases"
 db_path = databases_path / "database.db"
 
-# Указываем абсолютные пути напрямую
-# databases_path = "/home/user/programming/university/semester7/Schedule/databases"
-# db_path = "/home/user/programming/university/semester7/Schedule/databases/database.db"
-
 if not os.path.exists(databases_path):
     os.makedirs(databases_path)
 
@@ -39,6 +35,14 @@ class DatabaseCreator:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS holidays (
                 day TEXT PRIMARY KEY
+            );""")
+        
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS start_end_dates  (
+                start_0 TEXT KEY,
+                end_0 TEXT UNIQUE,
+                start_1 TEXT UNIQUE,
+                end_1 TEXT UNIQUE
             );""")
 
         conn.execute("""
@@ -66,8 +70,8 @@ class DatabaseCreator:
                 department_id INTEGER NOT NULL,
                 squad_type_id INTEGER NOT NULL,
                 day INTEGER NOT NULL,
-                start_week INTEGER,
-                end_week INTEGER,
+                start_week INTEGER NOT NULL,
+                end_week INTEGER NOT NULL,
 
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON UPDATE CASCADE,
                 FOREIGN KEY (squad_type_id) REFERENCES squad_types(id) ON UPDATE CASCADE
@@ -167,6 +171,11 @@ class DatabaseCreator:
 
 class DatabaseInitializer:
     def __init__(self):
+
+        self.start_end_dates = [
+            ('2025-09-01', '2025-12-30', '2026-02-01', '2026-06-25') 
+        ]
+        
         self.lesson_types = [
             (1, 'лекция'),
             (2, 'практика'),
@@ -194,37 +203,6 @@ class DatabaseInitializer:
             (7, 'Офицеры кадра', 4),
             (8, 'Солдаты запаса', 2),
             (9, 'Солдаты запаса', 3),
-        ]
-
-        self.officers = [
-            (1, 'Дмитрий', 'Орлов', 'Валерьевич'),
-            (2, 'Алексей', 'Овчинников', 'Владимирович'),
-            (3, 'Ситдиков', 'Венер', 'Мунирович'),
-            (4, 'Саяхов', 'Альберт', 'Рауфович'),
-            (5, 'Оглобличев', 'Максим', 'Алексеевич'),
-            (6, 'Ахмедянов', 'Сергей', 'Александрович'),
-            (7, 'Корнилов', 'Игорь', 'Владимирович'),
-            (8, 'Трофимов', 'Виталий', 'Анатольевич'),
-            (9, 'Яхин', 'Азат', 'Варисович'),
-            (10, 'Храмченко', 'Руслан', 'Иванович'),
-
-            (11, 'Сергеев', 'Алексей', 'Петрович'),
-            (12, 'Шартдинов', 'Айдар', 'Шайхлисламович'),
-            (13, 'Алказ', 'Вадим', 'Александрович'),
-            (14, 'Ступин', 'Евгений', 'Олегович'),
-            (15, 'Загиров', 'Наиль', 'Абдрахманович'),
-            (16, 'Кабиров', 'Ильнур', 'Равилевич'),
-            (17, 'Ворошилов', 'Сергей', 'Иванович'),
-            (18, 'Шиверских', 'Антон', 'Сергеевич'),
-            (19, 'Чернявский', 'Михаил', 'Анатольевич '),
-
-            (20, 'Веледов', 'Магир', 'Идриснаби'),
-            (21, 'Рзаев', 'Дмитрий', 'Олегович'),
-            (22, 'Садыков', 'Азамат', 'Камилевич'),
-            (23, 'Селуянов', 'Андрей', 'Александрович'),
-            (24, 'Мустафин', 'Марсель', 'Рафитович'),
-            (25, 'Воробьев', 'Николай', 'Александрович'),
-            (26, 'Файзуллин', 'Рамиль', 'Равильевич')
         ]
 
         self.audiences = [
@@ -283,36 +261,10 @@ class DatabaseInitializer:
             (10, 4, 4, 5, 2, 1),
         ]
 
-        self.lessons = [
-            (1, "4342", 1, 5, 1, '2025-12-07', 1, 208),
-            (2, "4342", 2, 6, 1, '2025-12-07', 2, 210),
-            (3, "4342", 3, 8, 2, '2025-12-07', 3, 227),
-            (4, "4342", 4, 9, 2, '2025-12-07', 4, 227),
-            (5, "4343", 1, 1, 1, '2025-12-07', 1, 208),
-            (6, "4343", 2, 2, 1, '2025-12-07', 2, 208),
-            (7, "4343", 3, 11, 2, '2025-12-07', 3, 227),
-            (8, "4343", 4, 12, 2, '2025-12-07', 4, 227),
-
-            (9, "4343", None, None, None, '2025-12-14', 1, None),
-            (10, "4343", None, None, None, '2025-12-14', 2, None),
-            (11, "4343", None, None, None, '2025-12-14', 3, None),
-            (12, "4343", None, None, None, '2025-12-14', 4, None),
-
-            (13, "4342", None, None, None, '2025-12-14', 1, None),
-            (14, "4342", None, 2, None, '2025-12-14', 2, None),
-            (15, "4342", None, None, 2, '2025-12-14', 3, 227),
-            (16, "4342", 4, None, None, '2025-12-14', 4, None),
-
-            (17, "4343", 5, 18, 3, '2025-12-21', 1, 208),
-            (18, "4343", 6, 18, 3, '2025-12-21', 2, 208),
-            (19, "4343", 7, 21, 4, '2025-12-21', 3, 227),
-            (20, "4343", 8, 21, 4, '2025-12-21', 4, 227),
-        ]
-
     def fill_data(self):
+        conn.executemany("INSERT INTO start_end_dates(start_0, end_0, start_1, end_1) VALUES((?), (?), (?), (?)) ON CONFLICT DO NOTHING", self.start_end_dates)
         conn.executemany("INSERT INTO lesson_types(id, name) VALUES((?), (?)) ON CONFLICT DO NOTHING", self.lesson_types)
         conn.executemany("INSERT INTO squad_types(id, type, course) VALUES((?), (?), (?)) ON CONFLICT DO NOTHING", self.squad_types)
-        conn.executemany("INSERT INTO officers(id, first_name, second_name, surname) VALUES((?), (?), (?), (?)) ON CONFLICT DO NOTHING", self.officers)
         conn.executemany("INSERT INTO audiences(number) VALUES((?)) ON CONFLICT DO NOTHING", self.audiences)
 
         conn.executemany("INSERT INTO subjects(id, name) VALUES(?, ?) ON CONFLICT DO NOTHING", self.subjects)
@@ -322,7 +274,6 @@ class DatabaseInitializer:
         conn.executemany("INSERT INTO subject_hours_load_count(subject_load_id, lesson_type_id, hours_count, audiences) VALUES(?, ?, ?, ?) ON CONFLICT DO NOTHING", self.subject_hours_load_count)
         conn.executemany("INSERT INTO squad_subject_loads(subject_load_id, squad, officers) VALUES(?, ?, ?) ON CONFLICT DO NOTHING", self.squad_subject_loads)
         conn.executemany("INSERT INTO themes(id, subject_load_id, lesson_type_id, topic, subtopic, hours_count) VALUES(?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING", self.themes)
-        conn.executemany("INSERT INTO lessons(id, squad, theme_id, officer_id, subject_load_id, date, sequence_number, audience) VALUES(?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING", self.lessons)
 
         conn.commit()
 

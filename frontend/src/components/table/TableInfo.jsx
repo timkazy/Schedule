@@ -19,14 +19,12 @@ function TableInfo({ platoon, isActive, infoData = [] }) {
 
   return (
     <div className="relative flex">
-      {/* Кнопка - поднимаем z-index */}
       <button
         onClick={toggleCollapse}
         disabled={isAnimating}
         className="absolute right-0 top-[136px] transform -translate-y-1/2 translate-x-1/2 z-20 rounded-full bg-green-400 w-6 h-6 flex items-center justify-center shadow-md hover:bg-green-500 transition-all duration-300 hover:scale-110 active:scale-95"
-        // className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 rounded-full bg-green-400 w-7 h-7 flex items-center justify-center shadow-md hover:bg-green-500 transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-50"
         aria-label={isCollapsed ? "Показать колонки" : "Скрыть колонки"}
-        title={isCollapsed ? "Показать дисциплины и аудитории" : "Скрыть дисциплины и аудитории"}
+        title={isCollapsed ? "Показать дополнительные данные" : "Скрыть дополнительные данные"}
       >
         <img
           src={goToIcon}
@@ -35,7 +33,6 @@ function TableInfo({ platoon, isActive, infoData = [] }) {
         />
       </button>
 
-      {/* Основное содержимое */}
       <div className="flex relative h-[240px]">
         <TablePlatoonColumn
           platoon={platoon}

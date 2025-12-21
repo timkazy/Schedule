@@ -17,32 +17,26 @@ import printIcon from "../../assets/icons/print.svg";
 
 function Menu() {
     const location = useLocation();
-    const { isEditing, hasChanges, setIsEditing, setHasChanges, scheduleData } = useEdit();
+    const { isEditing, hasChanges, setIsEditing, setHasChanges, scheduleData, isAdding, setIsAdding } = useEdit();
 
-    // Навигационные элементы сгруппированы по визуальным блокам
     const navigationGroups = [
-        // Первая группа: (1, 2, 3, 4)
         [
             { id: 1, name: "Таблица", icon: tableIcon, link: "/", type: "link" },
             { id: 2, name: "Нагрузки", icon: subjectLoadIcon, link: "/disciplines", type: "link" },
             { id: 3, name: "Взвода", icon: platoonIcon, link: "/platoons", type: "link" },
             { id: 4, name: "Кафедры", icon: departmentsIcon, link: "/departments", type: "link" },
         ],
-        // Вторая группа: (5, 6, 7)
         [
             { id: 5, name: "Офицеры", icon: officerIcon, link: "/teachers", type: "link" },
             { id: 6, name: "Предметы", icon: subjectIcon, link: "/subjects", type: "link" },
             { id: 7, name: "Аудитории", icon: audienceIcon, link: "/audience", type: "link" },
         ],
-        // Третья группа: (8)
         [
             { id: 8, name: "Настройки", icon: settingsIcon, link: "/settings", type: "link" },
         ],
     ];
 
-    // Функциональные элементы сгруппированы по визуальным блокам
     const actionGroups = [
-        // Первая группа: (edit, add)
         [
             {
                 id: "edit",
@@ -53,39 +47,38 @@ function Menu() {
             },
             {
                 id: "add",
-                name: "Добавить",
+                name: isAdding ? "Выйти из режима добавления" : "Добавить",
                 icon: addIcon,
-                action: () => console.log("Добавить элемент"),
+                action: () => setIsAdding((prev) => !prev),
                 type: "button",
             },
         ],
-        // Вторая группа: (print)
-        [
-            {
-                id: "print",
-                name: "Экспорт в Excel",
-                icon: printIcon,
-                action: () => {
-                    if (!scheduleData || scheduleData.length === 0) {
-                        alert('Нет данных для экспорта');
-                        return;
-                    }
+        // [
+        //     {
+        //         id: "print",
+        //         name: "Экспорт в Excel",
+        //         icon: printIcon,
+        //         action: () => {
+        //             if (!scheduleData || scheduleData.length === 0) {
+        //                 alert('Нет данных для экспорта');
+        //                 return;
+        //             }
 
-                    const filename = `Расписание.xlsx`;
-                    try {
-                        const success = exportToExcel(scheduleData, filename);
+        //             const filename = `Расписание.xlsx`;
+        //             try {
+        //                 const success = exportToExcel(scheduleData, filename);
 
-                        if (!success) {
-                            alert('Ошибка при экспорте. Проверьте консоль для деталей.');
-                        }
-                    } catch (error) {
-                        console.error('Ошибка при экспорте:', error);
-                        alert('Произошла ошибка при экспорте: ' + error.message);
-                    }
-                },
-                type: "button",
-            },
-        ],
+        //                 if (!success) {
+        //                     alert('Ошибка при экспорте. Проверьте консоль для деталей.');
+        //                 }
+        //             } catch (error) {
+        //                 console.error('Ошибка при экспорте:', error);
+        //                 alert('Произошла ошибка при экспорте: ' + error.message);
+        //             }
+        //         },
+        //         type: "button",
+        //     },
+        // ],
     ];
 
     const handleNavigation = (e, item) => {
@@ -101,9 +94,9 @@ function Menu() {
     };
 
     return (
-        <div className="fixed left-4 top-[47%] transform -translate-y-72 z-50">
-            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-2 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
-                <div className="flex flex-col space-y-5 py-1">
+        <div className="fixed left-4 top-[48%] transform -translate-y-72 z-50">
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+                <div className="flex flex-col space-y-6 py-1">
                     {navigationGroups[0].map((item) => (
                         <Link
                             key={item.id}
@@ -122,8 +115,8 @@ function Menu() {
                 </div>
             </div>
 
-            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-2 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
-                <div className="flex flex-col space-y-5 py-1">
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+                <div className="flex flex-col space-y-6 py-1">
                     {navigationGroups[1].map((item) => (
                         <Link
                             key={item.id}
@@ -142,8 +135,8 @@ function Menu() {
                 </div>
             </div>
 
-            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-2 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
-                <div className="flex flex-col space-y-5">
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+                <div className="flex flex-col space-y-6">
                     <Link
                         to={navigationGroups[2][0].link}
                         onClick={(e) => handleNavigation(e, navigationGroups[2][0])}
@@ -159,8 +152,8 @@ function Menu() {
                 </div>
             </div>
 
-            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-2 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
-                <div className="flex flex-col space-y-5 py-1">
+            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+                <div className="flex flex-col space-y-6 py-2">
                     {actionGroups[0].map((item) => (
                         <button
                             key={item.id}
@@ -180,8 +173,7 @@ function Menu() {
                     ))}
                 </div>
             </div>
-
-            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
+            {/* <div className={`bg-green-400 rounded-2xl p-2 shadow-lg transition-all duration-300 ease-in-out transform ${isEditing ? "bg-opacity-65" : "bg-opacity-95"} hover:bg-opacity-100`}>
                 <div className="flex flex-col space-y-5">
                     <button
                         onClick={actionGroups[1][0].action}
@@ -196,7 +188,7 @@ function Menu() {
                         <img src={actionGroups[1][0].icon} alt={actionGroups[1][0].name} className="w-6 h-6" />
                     </button>
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 }
