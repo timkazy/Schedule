@@ -31,6 +31,15 @@ function Schedule() {
     window.print();
   };
 
+  // Функция для получения названия дня недели
+  // const getDayName = (dayId) => {
+  //   const days = [
+  //     "Воскресенье", "Понедельник", "Вторник", "Среда", 
+  //     "Четверг", "Пятница", "Суббота"
+  //   ];
+  //   return days[dayId] || "Выбранный день";
+  // };
+
   return (
     <>
       <EditMenu />
@@ -90,19 +99,55 @@ function Schedule() {
           </div>
         </div>
 
-        <div className="flex flex-col items-center space-y-8 mt-5">
-          {dayTables.map((table) => (
-            <div key={table.id} className="w-full max-w-6xl">
-              <Table
-                isEditing={isEditing}
-                columnsData={table.columns}
-                infoData={table.info || []}
-                activeTableId={activeTableId}
-                platoonId={table.platoonId}
-                isCollapsed={isCollapsed}
-              />
+        {/* Основной контент */}
+        <div className="min-h-[400px]">
+          {dayTables.length > 0 ? (
+            // Если есть таблицы для отображения
+            <div className="flex flex-col items-center space-y-8 mt-5">
+              {dayTables.map((table) => (
+                <div key={table.id} className="w-full max-w-6xl">
+                  <Table
+                    isEditing={isEditing}
+                    columnsData={table.columns}
+                    infoData={table.info || []}
+                    activeTableId={activeTableId}
+                    platoonId={table.platoonId}
+                    isCollapsed={isCollapsed}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            // Если нет таблиц для отображения
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="text-gray-500 mb-4">
+                <svg
+                  className="w-24 h-24 mx-auto"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-700 mb-2">
+                Нет взводов, учащихся в этот день недели
+              </h2>
+              {/* <p className="text-gray-600 max-w-md"> */}
+                {/* {activeDay === 0  */}
+                  {/* ? "На всю неделю не найдено расписания для взводов."  */}
+                  {/* : `В ${getDayName(activeDay)} нет взводов с занятиями.`} */}
+              {/* </p> */}
+              <p className="text-gray-500 mt-4 text-sm">
+                Выберите другой день недели или проверьте наличие данных в системе.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </>

@@ -1,6 +1,6 @@
 // import okIcon from "../../assets/icons/ok.svg";
 // import crossIcon from "../../assets/icons/cross.svg";
-import magicIcon from "../../assets/icons/magic.svg";
+// import magicIcon from "../../assets/icons/magic.svg";
 import allIcon from "../../assets/icons/all.svg";
 // import infoIcon from "../../assets/icons/info.svg";
 import editIcon from "../../assets/icons/edit2.svg";
@@ -29,13 +29,13 @@ function EditMenu() {
   if (!isEditing) return null;
 
   const editMenuItems = [
-    {
-      id: "magic",
-      name: "Автозаполнение",
-      icon: magicIcon,
-      active: selectedCount > 1,
-      // panel: () => <div>Сгенерировать / Сгенерировать только предметы</div>,
-    },
+    // {
+    //   id: "magic",
+    //   name: "Автозаполнение",
+    //   icon: magicIcon,
+    //   active: selectedCount > 1,
+    //   // panel: () => <div>Сгенерировать / Сгенерировать только предметы</div>,
+    // },
     { id: "all", name: "Выбрать всю таблицу", icon: allIcon, active: true },
     {
       id: "edit2",
