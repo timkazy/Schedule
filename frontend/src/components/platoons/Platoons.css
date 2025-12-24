@@ -254,3 +254,134 @@
   margin: 20px auto;
   max-width: 600px;
 }
+
+/* Добавление взвода */
+.add-platoon-form {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.add-platoon-form .grid {
+  gap: 20px;
+}
+
+.add-platoon-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.add-platoon-form input,
+.add-platoon-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.add-platoon-form input:focus,
+.add-platoon-form select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.add-platoon-form input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.add-platoon-form input[type="number"]::-webkit-outer-spin-button,
+.add-platoon-form input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.add-platoon-form button[type="submit"] {
+  background-color: #3b82f6;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-platoon-form button[type="submit"]:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.add-platoon-form button[type="submit"]:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.add-platoon-form .border-t {
+  margin-top: 30px;
+  padding-top: 20px;
+}
+
+/* Режим просмотра нагрузок */
+.platoon-loads-section .load-card.view-mode {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.platoon-loads-section .load-card.view-mode .load-header {
+  border-bottom-color: #d1d5db;
+}
+
+.platoon-loads-section .load-card.view-mode .load-title {
+  color: #374151;
+}
+
+.platoon-loads-section .load-card.view-mode .load-meta {
+  color: #6b7280;
+}
+
+/* Индикатор режима */
+.mode-indicator {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 10px;
+}
+
+.mode-indicator.view {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.mode-indicator.edit {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* Неактивные элементы в режиме просмотра */
+.view-mode .edit-control {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.view-mode input,
+.view-mode select,
+.view-mode button {
+  pointer-events: none;
+}
+
+/* Заголовок в режиме просмотра */
+.view-mode-title {
+  color: #4b5563;
+  font-size: 18px;
+  font-weight: 600;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 20px;
+}

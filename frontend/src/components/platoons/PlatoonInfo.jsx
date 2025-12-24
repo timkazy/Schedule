@@ -240,13 +240,11 @@ const PlatoonInfo = ({ data, isEditing, onSave }) => {
         )}
       </div>
 
-      {/* Кафедра (только чтение) */}
       <div className="platoon-field">
         <label>Кафедра:</label>
         <span className="platoon-value">{data.department_name}</span>
       </div>
 
-      {/* Кнопки сохранения/отмены в режиме редактирования */}
       {isEditingLocal && (
         <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-4">
           <button

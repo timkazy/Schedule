@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from dotenv import load_dotenv
 from pathlib import Path
@@ -297,32 +297,30 @@ def get_schedule():
 
         print("📊 Формирование расписания...")
 
-        # Получаем все взвода
-        cursor.execute("SELECT DISTINCT number AS platoonId, day FROM squads ORDER BY day, number")
+        # Получаем все взвода с их днями недели
+        cursor.execute("""
+            SELECT DISTINCT number AS platoonId, day 
+            FROM squads 
+            WHERE day IS NOT NULL 
+            ORDER BY day, number
+        """)
         squads = cursor.fetchall()
 
-        result = []
-        day_counter = 1
-        current_day = None
-        day_platoons = []
-
+        # Создаем словарь для группировки взводов по дням недели
+        days_dict = {}
+        
         for squad in squads:
             platoon_id = squad["platoonId"]
-            day_name = squad["day"]
-
-            if day_name != current_day:
-                if current_day is not None:
-                    # Сохраняем предыдущий день
-                    result.append({
-                        "dayId": day_counter,
-                        "platoons": day_platoons.copy()
-                    })
-                    day_counter += 1
-                    day_platoons = []
-
-                current_day = day_name
-
-            print(f"📋 Обработка взвода {platoon_id}")
+            day_number = squad["day"]  # 1-7, где 1=понедельник
+            
+            # Если день еще не существует в словаре, создаем его
+            if day_number not in days_dict:
+                days_dict[day_number] = {
+                    "dayId": day_number,  # Используем реальный номер дня недели
+                    "platoons": []
+                }
+            
+            print(f"📋 Обработка взвода {platoon_id} (день недели: {day_number})")
 
             # ===== INFO: предметы и аудитории =====
             cursor.execute("""
@@ -389,18 +387,26 @@ def get_schedule():
             # ===== Группируем по дате =====
             columns_map = {}
             for lesson in lessons:
-                date_str = str(lesson["date"]).split(" ")[0]
+                date_str = str(lesson["date"])
+                
+                # Преобразуем дату в нужный формат
                 try:
-                    # форматируем в DD.MM
+                    # Убираем время если есть
+                    if " " in date_str:
+                        date_str = date_str.split(" ")[0]
+                    
+                    # Форматируем в DD.MM
                     if "-" in date_str:
                         parts = date_str.split("-")
                         if len(parts) >= 3:
-                            date_display = f"{parts[2]}.{parts[1]}"
+                            # Из YYYY-MM-DD в DD.MM
+                            date_display = f"{int(parts[2]):02d}.{int(parts[1]):02d}"
                         else:
                             date_display = date_str
                     else:
                         date_display = date_str
-                except:
+                except Exception as e:
+                    print(f"Ошибка форматирования даты {date_str}: {e}")
                     date_display = date_str
 
                 if date_display not in columns_map:
@@ -426,18 +432,33 @@ def get_schedule():
                 "columns": list(columns_map.values())
             }
 
-            day_platoons.append(platoon_obj)
+            # Добавляем взвод в соответствующий день
+            days_dict[day_number]["platoons"].append(platoon_obj)
 
-        # Добавляем последний день
-        if day_platoons:
-            result.append({
-                "dayId": day_counter,
-                "platoons": day_platoons
-            })
+        # Преобразуем словарь в список, отсортированный по дням недели
+        result = []
+        for day_number in sorted(days_dict.keys()):
+            day_data = days_dict[day_number]
+            
+            # Добавляем название дня недели для удобства
+            day_names = {
+                1: "Понедельник",
+                2: "Вторник", 
+                3: "Среда",
+                4: "Четверг",
+                5: "Пятница",
+                6: "Суббота",
+                7: "Воскресенье"
+            }
+            day_data["dayName"] = day_names.get(day_number, f"День {day_number}")
+            
+            result.append(day_data)
 
         conn.close()
 
-        print(f"✅ Сформировано расписание: {len(result)} дней, {sum(len(d['platoons']) for d in result)} взводов:")
+        print(f"✅ Сформировано расписание: {len(result)} дней недели")
+        for day in result:
+            print(f"   День {day['dayId']} ({day.get('dayName', '')}): {len(day['platoons'])} взводов")
 
         return result
 
@@ -593,7 +614,6 @@ def health_check():
         return {"status": "unhealthy", "error": str(e)}
 
 
-
 # ------------------------ PLATOONS ------------------------
 
 # ---------------------------------------------------------------------------
@@ -640,6 +660,136 @@ def get_squad_types():
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения типов взводов: {str(e)}")
+
+# Добавим вспомогательные функции для работы с датами и расписанием
+
+# ---------------------------------------------------------------------------
+# Вспомогательные функции для работы с расписанием
+# ---------------------------------------------------------------------------
+
+def get_semester_dates(conn):
+    """Получить даты семестров"""
+    cursor = conn.cursor()
+    cursor.execute("SELECT start_0, end_0, start_1, end_1 FROM start_end_dates LIMIT 1")
+    dates = cursor.fetchone()
+    return {
+        'fall_start': dates['start_0'],
+        'fall_end': dates['end_0'],
+        'spring_start': dates['start_1'],
+        'spring_end': dates['end_1']
+    }
+
+def calculate_week_dates(start_date_str, week_number, day_of_week):
+    """
+    Рассчитать дату конкретного дня недели для заданной недели
+    week_number: номер недели от начала семестра (1-based)
+    day_of_week: день недели (1-7, где 1=понедельник)
+    """
+    from datetime import datetime, timedelta
+    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+    
+    # Находим первый понедельник от начальной даты
+    days_to_monday = (7 - start_date.weekday()) % 7 if start_date.weekday() != 0 else 0
+    first_monday = start_date + timedelta(days=days_to_monday)
+    
+    # Дата для заданной недели и дня недели
+    target_date = first_monday + timedelta(weeks=week_number-1, days=day_of_week-1)
+    return target_date.strftime('%Y-%m-%d')
+
+def is_date_in_semester(date_str, semester_dates):
+    """Проверить, попадает ли дата в рамки семестра"""
+    from datetime import datetime
+    date = datetime.strptime(date_str, '%Y-%m-%d')
+    
+    fall_start = datetime.strptime(semester_dates['fall_start'], '%Y-%m-%d')
+    fall_end = datetime.strptime(semester_dates['fall_end'], '%Y-%m-%d')
+    spring_start = datetime.strptime(semester_dates['spring_start'], '%Y-%m-%d')
+    spring_end = datetime.strptime(semester_dates['spring_end'], '%Y-%m-%d')
+    
+    return (fall_start <= date <= fall_end) or (spring_start <= date <= spring_end)
+
+def generate_lesson_dates_for_squad(squad_data, conn):
+    """
+    Сгенерировать даты занятий для взвода
+    Возвращает список дат в формате 'YYYY-MM-DD'
+    """
+    semester_dates = get_semester_dates(conn)
+    dates = []
+    
+    # Генерируем даты для осеннего семестра
+    for week in range(squad_data['start_week'], squad_data['end_week'] + 1):
+        date_str = calculate_week_dates(semester_dates['fall_start'], week, squad_data['day'])
+        
+        # Проверяем, что дата в пределах семестра и не праздничный день
+        if (is_date_in_semester(date_str, semester_dates)):
+            dates.append(date_str)
+    
+    # Если занятия продолжаются в весеннем семестре
+    if squad_data['end_week'] > 16:  # Осенний семестр обычно 16 недель
+        spring_start_week = 1
+        for week in range(spring_start_week, squad_data['end_week'] - 16 + 1):
+            date_str = calculate_week_dates(semester_dates['spring_start'], week, squad_data['day'])
+            
+            if (is_date_in_semester(date_str, semester_dates) and 
+                date_str not in holidays):
+                dates.append(date_str)
+    
+    return dates
+
+def clear_squad_lessons(conn, squad_number):
+    """Удалить все занятия взвода"""
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM lessons WHERE squad = ?", (squad_number,))
+    conn.commit()
+
+def generate_lessons_for_squad(conn, squad_number, squad_data):
+    """Сгенерировать занятия для взвода"""
+    dates = generate_lesson_dates_for_squad(squad_data, conn)
+    cursor = conn.cursor()
+    
+    for date in dates:
+        # Создаем 4 занятия в день (1-4 пары)
+        for seq_num in range(1, 5):
+            try:
+                cursor.execute("""
+                    INSERT OR IGNORE INTO lessons (squad, date, sequence_number)
+                    VALUES (?, ?, ?)
+                """, (squad_number, date, seq_num))
+            except Exception as e:
+                print(f"Ошибка создания занятия: {e}")
+    
+    conn.commit()
+    return len(dates) * 4  # Возвращаем количество созданных занятий
+
+def shift_squad_lessons(conn, squad_number, week_shift):
+    """Сдвинуть все занятия взвода на указанное количество недель"""
+    cursor = conn.cursor()
+    
+    # Получаем текущие занятия
+    cursor.execute("SELECT id, date FROM lessons WHERE squad = ? ORDER BY date", (squad_number,))
+    lessons = cursor.fetchall()
+    
+    if not lessons:
+        return
+    
+    semester_dates = get_semester_dates(conn)
+    
+    for lesson in lessons:
+        old_date = datetime.strptime(lesson['date'], '%Y-%m-%d')
+        
+        # Сдвигаем дату на недели
+        new_date = old_date + timedelta(weeks=week_shift)
+        new_date_str = new_date.strftime('%Y-%m-%d')
+        
+        # Проверяем, что новая дата в пределах семестра
+        if is_date_in_semester(new_date_str, semester_dates):
+            cursor.execute("""
+                UPDATE lessons 
+                SET date = ? 
+                WHERE id = ? AND squad = ?
+            """, (new_date_str, lesson['id'], squad_number))
+    
+    conn.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -724,27 +874,39 @@ def get_platoon_details(platoon_number: str):
     except Exception as e:
         print(f"❌ Ошибка получения данных взвода: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения данных взвода: {str(e)}")
-    
+
+
 # ---------------------------------------------------------------------------
-# 🔹 PUT /platoons/{platoon_number}
+# 🔹 PUT /platoons/{platoon_number} - ИСПРАВЛЕННЫЙ
 # ---------------------------------------------------------------------------
 @app.put("/platoons/{platoon_number}")
 def update_platoon(platoon_number: str, data: dict):
     """
-    Обновить данные взвода
+    Обновить данные взвода и пересчитать расписание
     """
     try:
         print(f"🔄 Обновление взвода {platoon_number}: {data}")
         
+        from datetime import datetime, timedelta
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Проверяем существование взвода
-        cursor.execute("SELECT squad_type_id FROM squads WHERE number = ?", (platoon_number,))
-        if not cursor.fetchone():
+        # Получаем текущие данные взвода
+        cursor.execute("""
+            SELECT squad_type_id, day, start_week, end_week 
+            FROM squads WHERE number = ?
+        """, (platoon_number,))
+        
+        current_data = cursor.fetchone()
+        if not current_data:
             raise HTTPException(status_code=404, detail="Взвод не найден")
-        print("t1")
-
+        
+        print("t1 - Проверка взвода выполнена")
+        
+        old_start_week = current_data['start_week']
+        old_end_week = current_data['end_week']
+        old_day = current_data['day']
+        
         updates = []
         params = []
         
@@ -756,48 +918,67 @@ def update_platoon(platoon_number: str, data: dict):
                 params.append(data["squad_type_id"])
             else:
                 raise HTTPException(status_code=400, detail="Тип взвода не найден")
-        print("t2")
+        print("t2 - Тип взвода")
         
-
         # Обновление дня недели
+        new_day = old_day  # По умолчанию оставляем старый
         if "day" in data:
             if 1 <= data["day"] <= 7:
                 updates.append("day = ?")
                 params.append(data["day"])
+                new_day = data["day"]
             else:
                 raise HTTPException(status_code=400, detail="День недели должен быть от 1 до 7")
-        print("t3")
-
+        print("t3 - День недели")
+        
         # Обновление недели начала
+        new_start_week = old_start_week  # По умолчанию оставляем старый
         if "start_week" in data:
             if data["start_week"] is None:
                 updates.append("start_week = NULL")
+                new_start_week = None
             elif 1 <= data["start_week"] <= 52:
                 updates.append("start_week = ?")
                 params.append(data["start_week"])
+                new_start_week = data["start_week"]
             else:
                 raise HTTPException(status_code=400, detail="Неделя начала должна быть от 1 до 52")
-        print("t4")
+        print("t4 - Неделя начала")
         
-
         # Обновление недели окончания
+        new_end_week = old_end_week  # По умолчанию оставляем старый
         if "end_week" in data:
             if data["end_week"] is None:
                 updates.append("end_week = NULL")
+                new_end_week = None
             elif 1 <= data["end_week"] <= 52:
                 updates.append("end_week = ?")
                 params.append(data["end_week"])
+                new_end_week = data["end_week"]
             else:
                 raise HTTPException(status_code=400, detail="Неделя окончания должна быть от 1 до 52")
-        print("t5")
-
+        print("t5 - Неделя окончания")
+        
         # Валидация: неделя начала должна быть меньше недели окончания
-        if ("start_week" in data and data["start_week"] is not None and 
-            "end_week" in data and data["end_week"] is not None and
-            data["start_week"] >= data["end_week"]):
+        if (new_start_week is not None and new_end_week is not None and
+            new_start_week >= new_end_week):
             raise HTTPException(status_code=400, detail="Неделя начала должна быть меньше недели окончания")
-        print("t6")
-
+        print("t6 - Валидация недель")
+        
+        # Проверяем, были ли реальные изменения в данных
+        has_changes = any([
+            "squad_type_id" in data,
+            ("day" in data and data["day"] != old_day),
+            ("start_week" in data and data.get("start_week") != old_start_week),
+            ("end_week" in data and data.get("end_week") != old_end_week)
+        ])
+        
+        if not has_changes:
+            print("🔄 Нет изменений для обновления")
+            conn.close()
+            return {"success": True, "message": "Нет изменений для обновления"}
+        
+        # Обновляем данные взвода
         if updates:
             params.append(platoon_number)
             query = f"UPDATE squads SET {', '.join(updates)} WHERE number = ?"
@@ -808,15 +989,263 @@ def update_platoon(platoon_number: str, data: dict):
             conn.commit()
             print(f"✅ Взвод {platoon_number} обновлен")
         
+        # Теперь работаем с расписанием
+        print("🎯 Начинаем обработку расписания...")
+        
+        # Определяем, нужно ли обновлять расписание
+        # Расписание нужно обновлять если:
+        # 1. Изменился день недели
+        # 2. Изменился start_week
+        # 3. Изменился end_week
+        # 4. Было добавлено start_week/end_week (с NULL на значение)
+        # 5. Было убрано start_week/end_week (с значения на NULL)
+        
+        schedule_needs_update = False
+        schedule_reason = ""
+        
+        # Проверяем изменения в параметрах расписания
+        day_changed = "day" in data and data["day"] != old_day
+        start_week_changed = ("start_week" in data and 
+                             data.get("start_week") != old_start_week)
+        end_week_changed = ("end_week" in data and 
+                           data.get("end_week") != old_end_week)
+        
+        if day_changed:
+            schedule_needs_update = True
+            schedule_reason = "изменен день недели"
+        
+        if start_week_changed:
+            schedule_needs_update = True
+            if schedule_reason:
+                schedule_reason += " и "
+            schedule_reason += "изменена неделя начала"
+        
+        if end_week_changed:
+            schedule_needs_update = True
+            if schedule_reason:
+                schedule_reason += " и "
+            schedule_reason += "изменена неделя окончания"
+        
+        # Особые случаи: добавление или удаление недель (переход с/на NULL)
+        if ("start_week" in data and data["start_week"] is None and old_start_week is not None):
+            schedule_needs_update = True
+            schedule_reason = "удалена неделя начала"
+        
+        if ("start_week" in data and data["start_week"] is not None and old_start_week is None):
+            schedule_needs_update = True
+            schedule_reason = "добавлена неделя начала"
+        
+        if ("end_week" in data and data["end_week"] is None and old_end_week is not None):
+            schedule_needs_update = True
+            schedule_reason = "удалена неделя окончания"
+        
+        if ("end_week" in data and data["end_week"] is not None and old_end_week is None):
+            schedule_needs_update = True
+            schedule_reason = "добавлена неделя окончания"
+        
+        print(f"📅 Нужно обновить расписание: {schedule_needs_update}, причина: {schedule_reason}")
+        
+        if not schedule_needs_update:
+            print("📅 Параметры расписания не изменились - пропускаем обновление")
+            conn.close()
+            return {"success": True, "message": "Данные обновлены"}
+        
+        # Получаем обновленные данные
+        cursor.execute("""
+            SELECT day, start_week, end_week 
+            FROM squads WHERE number = ?
+        """, (platoon_number,))
+        updated_data = cursor.fetchone()
+        
+        # Проверяем, есть ли уже занятия у взвода
+        cursor.execute("SELECT COUNT(*) as count FROM lessons WHERE squad = ?", (platoon_number,))
+        lesson_count = cursor.fetchone()['count']
+        
+        if lesson_count == 0:
+            # Если занятий нет - создаем новые, если указаны недели
+            if updated_data['start_week'] and updated_data['end_week']:
+                print(f"📝 Создаем новое расписание...")
+                squad_info = {
+                    'day': updated_data['day'],
+                    'start_week': updated_data['start_week'],
+                    'end_week': updated_data['end_week']
+                }
+                lessons_created = generate_lessons_for_squad(conn, platoon_number, squad_info)
+                print(f"✅ Создано {lessons_created} занятий")
+            else:
+                print("⚠️ Не указаны недели - расписание не создано")
+            
+        else:
+            # Если занятия есть, анализируем изменения
+            old_duration = old_end_week - old_start_week if old_end_week and old_start_week else 0
+            new_duration = new_end_week - new_start_week if new_end_week and new_start_week else 0
+            
+            can_shift = (
+                not day_changed and  # День недели не изменился
+                new_start_week is not None and  # Новый start_week указан
+                new_end_week is not None and    # Новый end_week указан
+                old_start_week is not None and  # Старый start_week был указан
+                old_end_week is not None and    # Старый end_week был указан
+                new_duration >= old_duration    # Новый период не короче старого
+            )
+            
+            if can_shift:
+                # Можем просто сдвинуть занятия
+                week_shift = new_start_week - old_start_week
+                print(f"↕️ Сдвигаем занятия на {week_shift} недель")
+                shift_squad_lessons(conn, platoon_number, week_shift)
+                
+                # Если end_week изменился, добавляем или удаляем занятия
+                if end_week_changed:
+                    print("🔧 Корректируем занятия из-за изменения end_week")
+                    
+                    # Получаем текущие даты после сдвига
+                    cursor.execute("SELECT DISTINCT date FROM lessons WHERE squad = ? ORDER BY date", 
+                                 (platoon_number,))
+                    current_dates = [row['date'] for row in cursor.fetchall()]
+                    
+                    # Генерируем новые даты которые должны быть
+                    squad_info = {
+                        'day': updated_data['day'],
+                        'start_week': updated_data['start_week'],
+                        'end_week': updated_data['end_week']
+                    }
+                    target_dates = generate_lesson_dates_for_squad(squad_info, conn)
+                    
+                    # Находим даты которые нужно добавить
+                    dates_to_add = [d for d in target_dates if d not in current_dates]
+                    
+                    # Находим даты которые нужно удалить
+                    dates_to_remove = [d for d in current_dates if d not in target_dates]
+                    
+                    # Добавляем недостающие даты
+                    for date in dates_to_add:
+                        for seq_num in range(1, 5):
+                            try:
+                                cursor.execute("""
+                                    INSERT OR IGNORE INTO lessons (squad, date, sequence_number)
+                                    VALUES (?, ?, ?)
+                                """, (platoon_number, date, seq_num))
+                            except Exception as e:
+                                print(f"Ошибка добавления занятия: {e}")
+                    
+                    # Удаляем лишние даты
+                    if dates_to_remove:
+                        placeholders = ','.join(['?' for _ in dates_to_remove])
+                        cursor.execute(f"""
+                            DELETE FROM lessons 
+                            WHERE squad = ? AND date IN ({placeholders})
+                        """, (platoon_number, *dates_to_remove))
+                        print(f"🗑️ Удалено занятий в {len(dates_to_remove)} дней")
+                    
+                    conn.commit()
+                    print(f"➕ Добавлено занятий в {len(dates_to_add)} дней")
+                    
+            else:
+                # Нельзя сдвинуть - пересоздаем полностью
+                print("🔄 Пересоздаем расписание полностью...")
+                clear_squad_lessons(conn, platoon_number)
+                
+                if updated_data['start_week'] and updated_data['end_week']:
+                    squad_info = {
+                        'day': updated_data['day'],
+                        'start_week': updated_data['start_week'],
+                        'end_week': updated_data['end_week']
+                    }
+                    lessons_created = generate_lessons_for_squad(conn, platoon_number, squad_info)
+                    print(f"✅ Создано {lessons_created} занятий")
+        
         conn.close()
-        return {"success": True, "message": "Данные обновлены"}
+        return {"success": True, "message": "Данные и расписание обновлены"}
         
     except HTTPException:
         raise
     except Exception as e:
         print(f"❌ Ошибка обновления взвода: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка обновления взвода: {str(e)}")
-    
+
+# ---------------------------------------------------------------------------
+# 🔹 POST /platoons - ОБНОВЛЕННЫЙ
+# ---------------------------------------------------------------------------
+@app.post("/platoons")
+def add_platoon(data: dict):
+    """
+    Добавить новый взвод и создать для него расписание
+    """
+    try:
+        print(f"📦 Получены данные: {data}")
+
+        number = data.get("number")
+        department_id = data.get("departmentId")
+        squad_type_id = data.get("squadTypeId")
+        day = data.get("day", 1)
+        start_week = data.get("start_week")
+        end_week = data.get("end_week")
+        
+        if not all([number, department_id, squad_type_id]):
+            raise HTTPException(status_code=400, detail="Не указаны обязательные поля")
+        
+        # Валидация недель
+        if start_week and (start_week < 1 or start_week > 52):
+            raise HTTPException(status_code=400, detail="Неделя начала должна быть от 1 до 52")
+        
+        if end_week and (end_week < 1 or end_week > 52):
+            raise HTTPException(status_code=400, detail="Неделя окончания должна быть от 1 до 52")
+        
+        if start_week and end_week and start_week >= end_week:
+            raise HTTPException(status_code=400, detail="Неделя начала должна быть меньше недели окончания")
+        print("1")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        print("2")
+        
+        # Проверяем, не существует ли уже взвод с таким номером
+        cursor.execute("SELECT number FROM squads WHERE number = ?", (number,))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Взвод с таким номером уже существует")
+        print("3")
+        
+        # Проверяем существование кафедры
+        cursor.execute("SELECT id FROM departments WHERE id = ?", (department_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Кафедра не найдена")
+        print("4")
+        
+        # Проверяем существование типа взвода
+        cursor.execute("SELECT id FROM squad_types WHERE id = ?", (squad_type_id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Тип взвода не найден")
+        print("5")
+
+        # Добавляем взвод
+        cursor.execute("""
+            INSERT INTO squads (number, department_id, squad_type_id, day, start_week, end_week)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (number, department_id, squad_type_id, day, start_week, end_week))
+        
+        conn.commit()
+        
+        # Создаем расписание для взвода, если указаны недели
+        if start_week and end_week:
+            print(f"📅 Создаем расписание для взвода {number}...")
+            squad_info = {
+                'day': day,
+                'start_week': start_week,
+                'end_week': end_week
+            }
+            lessons_created = generate_lessons_for_squad(conn, number, squad_info)
+            print(f"✅ Создано {lessons_created} занятий для взвода {number}")
+        
+        conn.close()
+        
+        return {"success": True, "message": "Взвод и расписание созданы", "number": number}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка добавления взвода: {str(e)}")
+
 # ---------------------------------------------------------------------------
 # 🔹 POST /platoons/{platoon_number}/rename
 # ---------------------------------------------------------------------------
@@ -920,75 +1349,6 @@ def delete_platoon(platoon_number: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка удаления: {str(e)}")
 
-# ---------------------------------------------------------------------------
-# 🔹 POST /platoons
-# ---------------------------------------------------------------------------
-@app.post("/platoons")
-def add_platoon(data: dict):
-    """
-    Добавить новый взвод
-    """
-    try:
-        print(f"📦 Получены данные: {data}")
-
-        number = data.get("number")
-        department_id = data.get("departmentId")
-        squad_type_id = data.get("squadTypeId")
-        day = data.get("day", 1)
-        start_week = data.get("start_week")
-        end_week = data.get("end_week")
-        
-        if not all([number, department_id, squad_type_id]):
-            raise HTTPException(status_code=400, detail="Не указаны обязательные поля")
-        
-        # Валидация недель
-        if start_week and (start_week < 1 or start_week > 52):
-            raise HTTPException(status_code=400, detail="Неделя начала должна быть от 1 до 52")
-        
-        if end_week and (end_week < 1 or end_week > 52):
-            raise HTTPException(status_code=400, detail="Неделя окончания должна быть от 1 до 52")
-        
-        if start_week and end_week and start_week >= end_week:
-            raise HTTPException(status_code=400, detail="Неделя начала должна быть меньше недели окончания")
-        print("1")
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        print("2")
-        
-        # Проверяем, не существует ли уже взвод с таким номером
-        cursor.execute("SELECT number FROM squads WHERE number = ?", (number,))
-        if cursor.fetchone():
-            raise HTTPException(status_code=400, detail="Взвод с таким номером уже существует")
-        print("3")
-        
-        # Проверяем существование кафедры
-        cursor.execute("SELECT id FROM departments WHERE id = ?", (department_id,))
-        if not cursor.fetchone():
-            raise HTTPException(status_code=400, detail="Кафедра не найдена")
-        print("4")
-        
-        # Проверяем существование типа взвода
-        cursor.execute("SELECT id FROM squad_types WHERE id = ?", (squad_type_id,))
-        if not cursor.fetchone():
-            raise HTTPException(status_code=400, detail="Тип взвода не найден")
-        print("5")
-
-        # Добавляем взвод
-        cursor.execute("""
-            INSERT INTO squads (number, department_id, squad_type_id, day, start_week, end_week)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (number, department_id, squad_type_id, day, start_week, end_week))
-        
-        conn.commit()
-        conn.close()
-        
-        return {"success": True, "message": "Взвод добавлен", "number": number}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка добавления взвода: {str(e)}")
 
 
 # ============================================================================

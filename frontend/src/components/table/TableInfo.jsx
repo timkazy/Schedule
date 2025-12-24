@@ -1,41 +1,10 @@
-import { useState } from "react";
 import TablePlatoonColumn from "./TablePlatoonColumn";
 import TableDisciplineColumn from "./TableDisciplineColumn";
 import TableAudienceColumn from "./TableAudienceColumn";
-import goToIcon from "../../assets/icons/goTo.svg";
 
-function TableInfo({ platoon, isActive, infoData = [] }) {
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const [isAnimating, setIsAnimating] = useState(false);
-
-  const toggleCollapse = () => {
-    if (isAnimating) return;
-
-    setIsAnimating(true);
-    setIsCollapsed(!isCollapsed);
-
-    setTimeout(() => setIsAnimating(false), 300);
-  };
-
+function TableInfo({ platoon, isActive, infoData = [], isCollapsed }) {
   return (
     <div className="relative flex">
-      {/* Кнопка - поднимаем z-index */}
-      <button
-        onClick={toggleCollapse}
-        disabled={isAnimating}
-        className="absolute right-0 top-[136px] transform -translate-y-1/2 translate-x-1/2 z-20 rounded-full bg-green-400 w-6 h-6 flex items-center justify-center shadow-md hover:bg-green-500 transition-all duration-300 hover:scale-110 active:scale-95"
-        // className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 rounded-full bg-green-400 w-7 h-7 flex items-center justify-center shadow-md hover:bg-green-500 transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-50"
-        aria-label={isCollapsed ? "Показать колонки" : "Скрыть колонки"}
-        title={isCollapsed ? "Показать дисциплины и аудитории" : "Скрыть дисциплины и аудитории"}
-      >
-        <img
-          src={goToIcon}
-          alt={isCollapsed ? "показать" : "скрыть"}
-          className={`w-4 h-4 transition-transform duration-300 ${isCollapsed ? "" : "rotate-180"}`}
-        />
-      </button>
-
-      {/* Основное содержимое */}
       <div className="flex relative h-[240px]">
         <TablePlatoonColumn
           platoon={platoon}
@@ -43,10 +12,13 @@ function TableInfo({ platoon, isActive, infoData = [] }) {
           showBorderRight={isCollapsed}
         />
 
-        <div className={`flex transition-all duration-700 ease-in-out ${isCollapsed
-            ? "w-0 opacity-0 pointer-events-none "
+        {/* Плавная анимация скрытия/показа с одинаковой длительностью */}
+        <div className={`flex transition-all duration-700 ease-in-out overflow-hidden ${
+          isCollapsed
+            ? "w-0 opacity-0"
             : "w-[261px] opacity-100"
-          }`}>
+          }`}
+        >
           <TableDisciplineColumn
             isActive={isActive}
             infoData={infoData}

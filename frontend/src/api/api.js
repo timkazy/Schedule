@@ -79,7 +79,6 @@ export const scheduleApi = {
 };
 
 // ------ PLATOONS ------
-// ------ PLATOONS ------
 export const platoonApi = {
   // Кафедры
   async getDepartments() {
@@ -411,7 +410,6 @@ export const audienceApi = {
   },
 };
 
-
 export const teachersApi = {
   // Получить всех преподавателей
   async getTeachers() {
@@ -472,7 +470,6 @@ export const teachersApi = {
     return response.json();
   },
 };
-
 
 export const subjectsApi = {
   // Получить все предметы

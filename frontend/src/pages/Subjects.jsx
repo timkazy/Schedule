@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { useEdit } from '../context/useEdit';
 import SubjectSelector from '../components/subjects/SubjectSelector';
 import SubjectInfo from '../components/subjects/SubjectInfo';
-import SubjectActions from '../components/subjects/SubjectActions';
+import AddSubjectForm from '../components/subjects/AddSubjectForm';
 import { subjectsApi } from '../api/api';
 import '../components/subjects/Subjects.css';
 
 function Subjects() {
-  const { isEditing } = useEdit();
+  const { isEditing, isAdding } = useEdit();
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [subjectData, setSubjectData] = useState(null);
@@ -56,15 +56,6 @@ function Subjects() {
     }
   };
 
-  const handleAddSubject = async (subjectData) => {
-    try {
-      await subjectsApi.addSubject(subjectData);
-      fetchSubjects();
-    } catch (err) {
-      throw err;
-    }
-  };
-
   const handleUpdateSubject = async (subjectData) => {
     try {
       await subjectsApi.updateSubject(selectedSubject.id, subjectData);
@@ -88,6 +79,36 @@ function Subjects() {
     }
   };
 
+  const handleSubjectAdded = () => {
+    // После добавления предмета сбрасываем состояние
+    setSelectedSubject(null);
+    setSubjectData(null);
+    fetchSubjects();
+  };
+
+  // Если режим добавления - показываем форму добавления
+  if (isAdding) {
+    return (
+      <div className="subjects-page">
+        <div className="text-7xl font-bold text-center mt-10 mb-8">Добавление предмета</div>
+        
+        {error && (
+          <div className="error-message bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            {error}
+          </div>
+        )}
+
+        <div className="subjects-container max-w-4xl mx-auto">
+          <AddSubjectForm 
+            onSubjectAdded={handleSubjectAdded}
+            existingSubjects={subjects} // Передаем список существующих предметов
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Обычный режим просмотра/редактирования
   return (
     <div className="subjects-page">
       <div className="text-7xl font-bold text-center mt-10 mb-8">Предметы</div>
@@ -113,7 +134,7 @@ function Subjects() {
         </div>
 
         {/* Информация о выбранном предмете */}
-        {subjectData && (
+        {subjectData && selectedSubject && (
           <>
             <SubjectInfo
               data={subjectData}
@@ -134,12 +155,14 @@ function Subjects() {
           </>
         )}
 
-        {/* Действия с предметами (добавление) */}
-        <SubjectActions
-          onSubjectAdded={() => {
-            fetchSubjects();
-          }}
-        />
+        {/* Сообщение, если предмет не выбран */}
+        {!selectedSubject && subjects.length > 0 && (
+          <div className="mt-8 text-center py-10 bg-gray-50 rounded-lg">
+            <p className="text-gray-600 text-lg">
+              Выберите предмет из списка выше
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
