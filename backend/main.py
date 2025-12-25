@@ -1,27 +1,29 @@
-# '''
-from dotenv import load_dotenv
-import os
-
-from repository import database, queries
-
-dbCreator = database.DatabaseCreator()
-dbCreator.init_database()
-
-dbInitializer = database.DatabaseInitializer()
-dbInitializer.fill_data()
-
-print(queries.get_input_data())
-# '''
-
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
-import sqlite3
-import os
-import json
-from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
+from sqlalchemy import text 
+from sqlalchemy import func
 from typing import Optional, List, Dict, Any
-from dotenv import load_dotenv
-from pathlib import Path
+from datetime import datetime, timedelta
+import traceback
+
+from repository import crud, schemas, models, database
+from repository.database import get_db, create_tables
+from repository.initializer import init_database
+
+# Включите логирование SQL запросов
+import logging
+logging.basicConfig()
+logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
+import calendar
+from repository.schedule_generator import (
+    generate_lessons_for_squad, clear_squad_lessons, 
+    shift_squad_lessons, generate_lesson_dates_for_squad
+)
+
+# Создаем таблицы при запуске
+create_tables()
 
 app = FastAPI(title="Schedule API", version="1.0")
 
@@ -33,24 +35,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Работа с относительными путями
-BASE_DIR = Path(__file__).parent
-DB_PATH = BASE_DIR / "databases" / "database.db"
+# Инициализируем базу данных при запуске
+print("🔧 Инициализация базы данных...")
+try:
+    init_database()
+    print("✅ База данных готова")
+except Exception as e:
+    print(f"⚠️ Предупреждение при инициализации БД: {e}")
 
-# DB_PATH = "/home/user/programming/university/semester7/Schedule/databases/database.db"
-print(f"📂 Путь к БД: {DB_PATH}")
-
-# Функция для подключения к БД
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-# ---------------------------------------------------------------------------
 # Вспомогательные функции
-# ---------------------------------------------------------------------------
 def convert_date_format(date_str: str) -> str:
-    """Конвертирует дату из формата 'дд.мм' в 'YYYY-MM-DD' (используя текущий год)"""
+    """Конвертирует дату из формата 'дд.мм' в 'YYYY-MM-DD'"""
     try:
         day, month = date_str.split('.')
         year = datetime.now().year
@@ -62,48 +57,24 @@ def convert_date_format(date_str: str) -> str:
 # 🔹 GET /subjects
 # ---------------------------------------------------------------------------
 @app.get("/schedule/subjects")
-def get_subjects(platoon_id: Optional[int] = Query(None)):
-    """
-    Получить предметы для взвода
-    Пример запроса: /subjects?platoonId=4342
-    """
+def get_subjects(
+    platoon_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """Получить предметы для взвода"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         if platoon_id:
-            # Получаем предметы для конкретного взвода
-            cursor.execute("""
-                SELECT DISTINCT 
-                    sl.id as subjectId,
-                    s.name as subjectName
-                FROM squads sq
-                JOIN squad_subject_loads ssl ON sq.number = ?
-                JOIN subject_loads sl ON ssl.subject_load_id = sl.id
-                JOIN subjects s ON sl.subject_id = s.id
-                ORDER BY s.name
-            """, (platoon_id,))
-        # else:
-        #     # Получаем все предметы (если platoonId не указан)
-        #     cursor.execute("""
-        #         SELECT DISTINCT 
-        #             s.id as subjectId,
-        #             s.name as subjectName
-        #         FROM subjects s
-        #         ORDER BY s.name
-        #     """)
-        
-        subjects = cursor.fetchall()
-        conn.close()
-        
-        result = []
-        for row in subjects:
-            result.append({
-                "subject_load_id": row["subjectId"],
-                "name": row["subjectName"]
-            })
-        
-        return result
+            subjects = crud.get_subjects_for_platoon(db, platoon_id)
+            result = [
+                {
+                    "subject_load_id": row.subjectId,
+                    "name": row.subjectName
+                }
+                for row in subjects
+            ]
+            return result
+        else:
+            return []
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения предметов: {str(e)}")
@@ -111,69 +82,31 @@ def get_subjects(platoon_id: Optional[int] = Query(None)):
 @app.get("/schedule/topics")
 def get_topics(
     subject_load_id: Optional[int] = Query(None),
-    lesson_type: Optional[str] = Query(None)
+    lesson_type: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
 ):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        if lesson_type:
-            cursor.execute("""
-                SELECT t.topic, t.subtopic, lt.name AS typeOfActivity
-                FROM themes t
-                JOIN lesson_types lt ON t.lesson_type_id = lt.id
-                WHERE t.subject_load_id = ? AND lt.name = ?
-                ORDER BY t.topic, t.subtopic
-            """, (subject_load_id, lesson_type))
-        else:
-            cursor.execute("""
-                SELECT t.topic, t.subtopic, lt.name AS typeOfActivity
-                FROM themes t
-                JOIN lesson_types lt ON t.lesson_type_id = lt.id
-                WHERE t.subject_load_id = ?
-                ORDER BY t.topic, t.subtopic
-            """, (subject_load_id,))
-
-        topics = cursor.fetchall()
-        conn.close()
-
-        print(f"✅ Найдено тем: {len(topics)}")
+        topics = crud.get_topics_for_subject(db, subject_load_id, lesson_type)
         return [
-            {"topic": row["topic"], "subtopic": row["subtopic"], "typeOfActivity": row["typeOfActivity"]}
+            {
+                "topic": row.topic,
+                "subtopic": row.subtopic,
+                "typeOfActivity": row.typeOfActivity
+            }
             for row in topics
         ]
-
     except Exception as e:
         print(f"❌ Ошибка в get_topics: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения тем: {e}")
 
-
 @app.get("/schedule/lesson-types")
-def get_lesson_types(subject_load_id: Optional[int] = Query(None)):
+def get_lesson_types(
+    subject_load_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db)
+):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT DISTINCT lt.name
-            FROM subject_hours_load_count shlc
-            JOIN lesson_types lt ON shlc.lesson_type_id = lt.id
-            WHERE shlc.subject_load_id = ?
-            UNION
-            SELECT DISTINCT lt.name
-            FROM themes t
-            JOIN lesson_types lt ON t.lesson_type_id = lt.id
-            WHERE t.subject_load_id = ?
-            ORDER BY lt.name
-        """, (subject_load_id, subject_load_id))
-
-        rows = cursor.fetchall()
-        conn.close()
-
-        result = [row["name"] for row in rows]
-        print(f"✅ Найдено типов занятий: {result}")
-        return result
-
+        lesson_types = crud.get_lesson_types_for_subject(db, subject_load_id)
+        return lesson_types
     except Exception as e:
         print(f"❌ Ошибка в get_lesson_types: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения типов занятий: {e}")
@@ -181,54 +114,12 @@ def get_lesson_types(subject_load_id: Optional[int] = Query(None)):
 @app.get("/schedule/audiences")
 def get_audiences(
     subject_load_id: Optional[int] = Query(None),
-    lesson_type: Optional[str] = Query(None)
+    lesson_type: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
 ):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # 2️⃣ Определяем ID типа занятия (если указан)
-        lesson_type_id = None
-        if lesson_type:
-            cursor.execute("SELECT id FROM lesson_types WHERE name = ?", (lesson_type,))
-            lt = cursor.fetchone()
-            if lt:
-                lesson_type_id = lt["id"]
-                print(f"📘 ID lesson_type={lesson_type_id}")
-            else:
-                print("⚠️ Тип занятия не найден")
-                conn.close()
-                return []
-
-        # 3️⃣ Получаем аудитории
-        if lesson_type_id:
-            cursor.execute("""
-                SELECT audiences 
-                FROM subject_hours_load_count
-                WHERE subject_load_id = ? AND lesson_type_id = ?
-            """, (subject_load_id, lesson_type_id))
-        else:
-            cursor.execute("""
-                SELECT audiences 
-                FROM subject_hours_load_count
-                WHERE subject_load_id = ?
-            """, (subject_load_id,))
-
-        rows = cursor.fetchall()
-        conn.close()
-
-        audience_set = set()
-        for r in rows:
-            if r["audiences"]:
-                for a in r["audiences"].split("/"):
-                    a = a.strip()
-                    if a.isdigit():
-                        audience_set.add(int(a))
-
-        result = [{"id": a, "importance": 1} for a in sorted(audience_set)]
-        print(f"✅ Найдено аудиторий: {result}")
-        return result
-
+        audiences = crud.get_audiences_for_subject(db, subject_load_id, lesson_type)
+        return audiences
     except Exception as e:
         print(f"❌ Ошибка в get_audiences: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения аудиторий: {e}")
@@ -236,736 +127,171 @@ def get_audiences(
 @app.get("/schedule/teachers")
 def get_teachers(
     platoon_id: Optional[str] = Query(None),
-    subject_load_id: Optional[int] = Query(None)
+    subject_load_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db)
 ):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
         if platoon_id and subject_load_id:
-            print("📘 Фильтруем по взводу и subject_load_id")
-            cursor.execute("""
-                SELECT DISTINCT o.id,
-                    o.first_name || ' ' || o.second_name || ' ' || o.surname AS full_name
-                FROM squad_subject_loads ssl
-                JOIN officers o ON o.id IN (
-                    SELECT TRIM(value)
-                    FROM json_each('[' || REPLACE(ssl.officers, '/', ',') || ']')
-                )
-                WHERE ssl.squad = ? AND ssl.subject_load_id = ?
-                ORDER BY full_name
-            """, (platoon_id, subject_load_id))
-
-        # elif platoon_id:
-        #     print("📗 Фильтруем только по взводу (без конкретного предмета)")
-        #     cursor.execute("""
-        #         SELECT DISTINCT o.id,
-        #             o.first_name || ' ' || o.second_name || ' ' || o.surname AS full_name
-        #         FROM squad_subject_loads ssl
-        #         JOIN officers o ON o.id IN (
-        #             SELECT TRIM(value)
-        #             FROM json_each('[' || REPLACE(ssl.officers, '/', ',') || ']')
-        #         )
-        #         WHERE ssl.squad = ?
-        #         ORDER BY full_name
-        #     """, (platoon_id,))
-
-        # else:
-        #     print("📙 Без фильтра — все преподаватели")
-        #     cursor.execute("""
-        #         SELECT id, first_name || ' ' || second_name || ' ' || surname AS full_name
-        #         FROM officers
-        #         ORDER BY full_name
-        #     """)
-
-        teachers = cursor.fetchall()
-        conn.close()
-
-        result = [row["full_name"] for row in teachers]
-        print(f"✅ Найдено преподавателей: {result}")
-        return result
-
+            teachers = crud.get_teachers_for_platoon_and_subject(db, platoon_id, subject_load_id)
+            return teachers
+        else:
+            return []
     except Exception as e:
         print(f"❌ Ошибка в get_teachers: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения преподавателей: {e}")
-  
+
 @app.get("/schedule")
-def get_schedule():
+def get_schedule(db: Session = Depends(get_db)):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
         print("📊 Формирование расписания...")
-
-        # Получаем все взвода с их днями недели
-        cursor.execute("""
-            SELECT DISTINCT number AS platoonId, day 
-            FROM squads 
-            WHERE day IS NOT NULL 
-            ORDER BY day, number
-        """)
-        squads = cursor.fetchall()
-
-        # Создаем словарь для группировки взводов по дням недели
-        days_dict = {}
-        
-        for squad in squads:
-            platoon_id = squad["platoonId"]
-            day_number = squad["day"]  # 1-7, где 1=понедельник
-            
-            # Если день еще не существует в словаре, создаем его
-            if day_number not in days_dict:
-                days_dict[day_number] = {
-                    "dayId": day_number,  # Используем реальный номер дня недели
-                    "platoons": []
-                }
-            
-            print(f"📋 Обработка взвода {platoon_id} (день недели: {day_number})")
-
-            # ===== INFO: предметы и аудитории =====
-            cursor.execute("""
-                SELECT DISTINCT
-                    sl.id AS subject_load_id,
-                    s.name AS subject
-                FROM squad_subject_loads ssl
-                JOIN subject_loads sl ON ssl.subject_load_id = sl.id
-                JOIN subjects s ON sl.subject_id = s.id
-                WHERE ssl.squad = ?
-            """, (platoon_id,))
-            info_rows = cursor.fetchall()
-
-            info = []
-            for row in info_rows:
-                subject_load_id = row["subject_load_id"]
-
-                # Получаем аудитории для предмета
-                cursor.execute("""
-                    SELECT audiences 
-                    FROM subject_hours_load_count
-                    WHERE subject_load_id = ?
-                """, (subject_load_id,))
-                audience_rows = cursor.fetchall()
-
-                audience_set = set()
-                for aud in audience_rows:
-                    if aud["audiences"]:
-                        for a in aud["audiences"].split("/"):
-                            a = a.strip()
-                            if a.isdigit():
-                                audience_set.add(int(a))
-
-                info.append({
-                    "subject_load_id": subject_load_id,
-                    "subject": row["subject"],
-                    "audiences": sorted(audience_set)
-                })
-
-            # ===== LESSONS =====
-            cursor.execute("""
-                SELECT 
-                    l.id AS lesson_id,
-                    l.date,
-                    l.sequence_number,
-                    l.audience,
-                    l.subject_load_id,
-                    COALESCE(s.name, '') AS subject,
-                    COALESCE(t.topic, 0) AS topic,
-                    COALESCE(t.subtopic, 0) AS subtopic,
-                    COALESCE(lt.name, '') AS type,
-                    COALESCE(o.first_name || ' ' || o.second_name || ' ' || o.surname, '') AS teacher
-                FROM lessons l
-                LEFT JOIN subject_loads sl ON l.subject_load_id = sl.id
-                LEFT JOIN subjects s ON sl.subject_id = s.id
-                LEFT JOIN officers o ON l.officer_id = o.id
-                LEFT JOIN themes t ON l.theme_id = t.id
-                LEFT JOIN lesson_types lt ON t.lesson_type_id = lt.id
-                WHERE l.squad = ?
-                ORDER BY l.date, l.sequence_number
-            """, (platoon_id,))
-            lessons = cursor.fetchall()
-
-            # ===== Группируем по дате =====
-            columns_map = {}
-            for lesson in lessons:
-                date_str = str(lesson["date"])
-                
-                # Преобразуем дату в нужный формат
-                try:
-                    # Убираем время если есть
-                    if " " in date_str:
-                        date_str = date_str.split(" ")[0]
-                    
-                    # Форматируем в DD.MM
-                    if "-" in date_str:
-                        parts = date_str.split("-")
-                        if len(parts) >= 3:
-                            # Из YYYY-MM-DD в DD.MM
-                            date_display = f"{int(parts[2]):02d}.{int(parts[1]):02d}"
-                        else:
-                            date_display = date_str
-                    else:
-                        date_display = date_str
-                except Exception as e:
-                    print(f"Ошибка форматирования даты {date_str}: {e}")
-                    date_display = date_str
-
-                if date_display not in columns_map:
-                    columns_map[date_display] = {
-                        "title": date_display,
-                        "cells": []
-                    }
-
-                columns_map[date_display]["cells"].append({
-                    "lesson_id": lesson["lesson_id"],
-                    "subject_load_id": lesson["subject_load_id"],
-                    "subject": lesson["subject"],
-                    "topic": int(lesson["topic"]) if str(lesson["topic"]).isdigit() else None,
-                    "subtopic": int(lesson["subtopic"]) if str(lesson["subtopic"]).isdigit() else None,
-                    "type": lesson["type"],
-                    "audience": lesson["audience"],
-                    "teacher": lesson["teacher"]
-                })
-
-            platoon_obj = {
-                "platoonId": platoon_id,
-                "info": info,
-                "columns": list(columns_map.values())
-            }
-
-            # Добавляем взвод в соответствующий день
-            days_dict[day_number]["platoons"].append(platoon_obj)
-
-        # Преобразуем словарь в список, отсортированный по дням недели
-        result = []
-        for day_number in sorted(days_dict.keys()):
-            day_data = days_dict[day_number]
-            
-            # Добавляем название дня недели для удобства
-            day_names = {
-                1: "Понедельник",
-                2: "Вторник", 
-                3: "Среда",
-                4: "Четверг",
-                5: "Пятница",
-                6: "Суббота",
-                7: "Воскресенье"
-            }
-            day_data["dayName"] = day_names.get(day_number, f"День {day_number}")
-            
-            result.append(day_data)
-
-        conn.close()
-
-        print(f"✅ Сформировано расписание: {len(result)} дней недели")
-        for day in result:
-            print(f"   День {day['dayId']} ({day.get('dayName', '')}): {len(day['platoons'])} взводов")
-
-        return result
-
+        schedule = crud.get_schedule(db)
+        print(f"✅ Сформировано расписание: {len(schedule)} дней")
+        return schedule
     except Exception as e:
-        import traceback
         print(f"❌ Ошибка в get_schedule: {e}")
         print(traceback.format_exc())
         return []
 
 @app.post("/schedule/savecell")
-def save_cell(data: dict):
-    """
-    Обновить данные ячейки по lesson_id (с фронта).
-    """
+def save_cell(data: dict, db: Session = Depends(get_db)):
+    """Обновить данные ячейки по lesson_id"""
     try:
         print(f"📦 Получены данные: {data}")
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        lesson_id = data.get("lesson_id")
-        platoon_id = data.get("platoon_id")  # squad
-        subject_load_id = data.get("subject_load_id")
-        topic = data.get("topic")
-        subtopic = data.get("subtopic")
-        lesson_type = data.get("type")
-        audience = data.get("audience")
-        teacher = data.get("teacher")
-
-        if not lesson_id:
-            return {"success": False, "error": "❌ Не указан lesson_id"}
-
-        # --- Проверяем, существует ли занятие ---
-        cursor.execute("SELECT * FROM lessons WHERE id = ?", (lesson_id,))
-        lesson = cursor.fetchone()
-        if not lesson:
-            print(f"⚠️ Урок с ID={lesson_id} не найден")
-            return {"success": False, "error": f"Занятие с ID={lesson_id} не найдено"}
-
-        print(f"🧩 Найден урок ID={lesson_id} для взвода {lesson['squad']}")
-
-        updates = []
-        params = []
-
-        # === 1. subject_load_id ===
-        if subject_load_id and subject_load_id != "null":
-            cursor.execute("SELECT id FROM subject_loads WHERE id = ?", (subject_load_id,))
-            if cursor.fetchone():
-                updates.append("subject_load_id = ?")
-                params.append(int(subject_load_id))
-            else:
-                print(f"⚠️ subject_load_id {subject_load_id} не найден в БД")
-        elif subject_load_id in ("null", None):
-            updates.append("subject_load_id = NULL")
-
-        # === 2. audience ===
-        if audience and audience != "null":
-            cursor.execute("SELECT number FROM audiences WHERE number = ?", (audience,))
-            if cursor.fetchone():
-                updates.append("audience = ?")
-                params.append(int(audience))
-            else:
-                print(f"⚠️ Аудитория {audience} не найдена — пропускаем")
-        elif audience in ("null", None):
-            updates.append("audience = NULL")
-
-        # === 3. преподаватель ===
-        if teacher and teacher != "null" and teacher.strip():
-            name_parts = teacher.strip().split()
-            if len(name_parts) == 3:
-                cursor.execute("""
-                    SELECT id FROM officers 
-                    WHERE first_name = ? AND second_name = ? AND surname = ?
-                """, (name_parts[0], name_parts[1], name_parts[2]))
-                officer = cursor.fetchone()
-                if officer:
-                    updates.append("officer_id = ?")
-                    params.append(officer["id"])
-                else:
-                    print(f"⚠️ Преподаватель {teacher} не найден — пропускаем")
-            else:
-                print(f"⚠️ Формат ФИО некорректный: {teacher}")
-        elif teacher in ("null", "", None):
-            updates.append("officer_id = NULL")
-
-        # === 4. тема ===
-        if (
-            subject_load_id and subject_load_id != "null"
-            and topic and topic != "null"
-            and subtopic and subtopic != "null"
-        ):
-            cursor.execute("""
-                SELECT id FROM themes
-                WHERE subject_load_id = ? AND topic = ? AND subtopic = ?
-            """, (int(subject_load_id), int(topic), int(subtopic)))
-            theme = cursor.fetchone()
-            if theme:
-                updates.append("theme_id = ?")
-                params.append(theme["id"])
-            else:
-                print(f"⚠️ Тема subject_load_id={subject_load_id}, topic={topic}, subtopic={subtopic} не найдена")
-        elif topic in ("null", None) or subtopic in ("null", None):
-            updates.append("theme_id = NULL")
-
-        # === 5. тип занятия (пока не обновляем напрямую) ===
-        if lesson_type and lesson_type != "null":
-            cursor.execute("SELECT id FROM lesson_types WHERE name = ?", (lesson_type,))
-            lt = cursor.fetchone()
-            if lt:
-                print(f"ℹ️ Тип занятия найден: {lt['id']} ({lesson_type})")
-            else:
-                print(f"⚠️ Тип занятия '{lesson_type}' не найден")
-
-        # --- Применяем обновления ---
-        if updates:
-            params.append(lesson_id)
-            query = f"UPDATE lessons SET {', '.join(updates)} WHERE id = ?"
-            print(f"📝 SQL: {query}")
-            print(f"📝 Параметры: {params}")
-            cursor.execute(query, params)
-            conn.commit()
-            print(f"✅ Урок {lesson_id} обновлён")
-        else:
-            print("⚠️ Нет данных для обновления")
-
-        # --- Проверка ---
-        cursor.execute("SELECT * FROM lessons WHERE id = ?", (lesson_id,))
-        updated = cursor.fetchone()
-        conn.close()
-
-        return {
-            "success": True,
-            "lessonId": lesson_id,
-            "updatedData": dict(updated) if updated else {}
-        }
-
+        result = crud.save_cell_data(db, data)
+        return result
     except Exception as e:
-        import traceback
         print("❌ Ошибка в save_cell:", e)
         print(traceback.format_exc())
         return {"success": False, "error": str(e)}
 
-
 @app.get("/health")
-def health_check():
+def health_check(db: Session = Depends(get_db)):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1")
-        conn.close()
+        db.execute("SELECT 1")
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
 
-
 # ------------------------ PLATOONS ------------------------
-
-# ---------------------------------------------------------------------------
-# 🔹 GET /platoons/departments
-# ---------------------------------------------------------------------------
 @app.get("/platoons/departments")
-def get_departments():
-    """
-    Получить все кафедры
-    """
+def get_departments(db: Session = Depends(get_db)):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT id, name FROM departments ORDER BY name")
-        departments = cursor.fetchall()
-        conn.close()
-        
-        return [{"id": row["id"], "name": row["name"]} for row in departments]
-        
+        departments = db.query(models.Department).order_by(models.Department.name).all()
+        return [{"id": dept.id, "name": dept.name} for dept in departments]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения кафедр: {str(e)}")
 
-
-# ---------------------------------------------------------------------------
-# 🔹 GET /platoons/squad-types
-# ---------------------------------------------------------------------------
 @app.get("/platoons/squad-types")
-def get_squad_types():
-    """
-    Получить все типы взводов
-    """
+def get_squad_types(db: Session = Depends(get_db)):
     try:
-        print("@app.get(/platoons/squad-types)")
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT id, type, course FROM squad_types ORDER BY type, course")
-        types = cursor.fetchall()
-        conn.close()
-        
-        return [{"id": row["id"], "type": row["type"], "course": row["course"]} for row in types]
-        
+        squad_types = db.query(models.SquadType).order_by(models.SquadType.type, models.SquadType.course).all()
+        return [{"id": st.id, "type": st.type, "course": st.course} for st in squad_types]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения типов взводов: {str(e)}")
 
-# Добавим вспомогательные функции для работы с датами и расписанием
-
-# ---------------------------------------------------------------------------
-# Вспомогательные функции для работы с расписанием
-# ---------------------------------------------------------------------------
-
-def get_semester_dates(conn):
-    """Получить даты семестров"""
-    cursor = conn.cursor()
-    cursor.execute("SELECT start_0, end_0, start_1, end_1 FROM start_end_dates LIMIT 1")
-    dates = cursor.fetchone()
-    return {
-        'fall_start': dates['start_0'],
-        'fall_end': dates['end_0'],
-        'spring_start': dates['start_1'],
-        'spring_end': dates['end_1']
-    }
-
-def calculate_week_dates(start_date_str, week_number, day_of_week):
-    """
-    Рассчитать дату конкретного дня недели для заданной недели
-    week_number: номер недели от начала семестра (1-based)
-    day_of_week: день недели (1-7, где 1=понедельник)
-    """
-    from datetime import datetime, timedelta
-    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-    
-    # Находим первый понедельник от начальной даты
-    days_to_monday = (7 - start_date.weekday()) % 7 if start_date.weekday() != 0 else 0
-    first_monday = start_date + timedelta(days=days_to_monday)
-    
-    # Дата для заданной недели и дня недели
-    target_date = first_monday + timedelta(weeks=week_number-1, days=day_of_week-1)
-    return target_date.strftime('%Y-%m-%d')
-
-def is_date_in_semester(date_str, semester_dates):
-    """Проверить, попадает ли дата в рамки семестра"""
-    from datetime import datetime
-    date = datetime.strptime(date_str, '%Y-%m-%d')
-    
-    fall_start = datetime.strptime(semester_dates['fall_start'], '%Y-%m-%d')
-    fall_end = datetime.strptime(semester_dates['fall_end'], '%Y-%m-%d')
-    spring_start = datetime.strptime(semester_dates['spring_start'], '%Y-%m-%d')
-    spring_end = datetime.strptime(semester_dates['spring_end'], '%Y-%m-%d')
-    
-    return (fall_start <= date <= fall_end) or (spring_start <= date <= spring_end)
-
-def generate_lesson_dates_for_squad(squad_data, conn):
-    """
-    Сгенерировать даты занятий для взвода
-    Возвращает список дат в формате 'YYYY-MM-DD'
-    """
-    semester_dates = get_semester_dates(conn)
-    dates = []
-    
-    # Генерируем даты для осеннего семестра
-    for week in range(squad_data['start_week'], squad_data['end_week'] + 1):
-        date_str = calculate_week_dates(semester_dates['fall_start'], week, squad_data['day'])
-        
-        # Проверяем, что дата в пределах семестра и не праздничный день
-        if (is_date_in_semester(date_str, semester_dates)):
-            dates.append(date_str)
-    
-    # Если занятия продолжаются в весеннем семестре
-    if squad_data['end_week'] > 16:  # Осенний семестр обычно 16 недель
-        spring_start_week = 1
-        for week in range(spring_start_week, squad_data['end_week'] - 16 + 1):
-            date_str = calculate_week_dates(semester_dates['spring_start'], week, squad_data['day'])
-            
-            if (is_date_in_semester(date_str, semester_dates) and 
-                date_str not in holidays):
-                dates.append(date_str)
-    
-    return dates
-
-def clear_squad_lessons(conn, squad_number):
-    """Удалить все занятия взвода"""
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM lessons WHERE squad = ?", (squad_number,))
-    conn.commit()
-
-def generate_lessons_for_squad(conn, squad_number, squad_data):
-    """Сгенерировать занятия для взвода"""
-    dates = generate_lesson_dates_for_squad(squad_data, conn)
-    cursor = conn.cursor()
-    
-    for date in dates:
-        # Создаем 4 занятия в день (1-4 пары)
-        for seq_num in range(1, 5):
-            try:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO lessons (squad, date, sequence_number)
-                    VALUES (?, ?, ?)
-                """, (squad_number, date, seq_num))
-            except Exception as e:
-                print(f"Ошибка создания занятия: {e}")
-    
-    conn.commit()
-    return len(dates) * 4  # Возвращаем количество созданных занятий
-
-def shift_squad_lessons(conn, squad_number, week_shift):
-    """Сдвинуть все занятия взвода на указанное количество недель"""
-    cursor = conn.cursor()
-    
-    # Получаем текущие занятия
-    cursor.execute("SELECT id, date FROM lessons WHERE squad = ? ORDER BY date", (squad_number,))
-    lessons = cursor.fetchall()
-    
-    if not lessons:
-        return
-    
-    semester_dates = get_semester_dates(conn)
-    
-    for lesson in lessons:
-        old_date = datetime.strptime(lesson['date'], '%Y-%m-%d')
-        
-        # Сдвигаем дату на недели
-        new_date = old_date + timedelta(weeks=week_shift)
-        new_date_str = new_date.strftime('%Y-%m-%d')
-        
-        # Проверяем, что новая дата в пределах семестра
-        if is_date_in_semester(new_date_str, semester_dates):
-            cursor.execute("""
-                UPDATE lessons 
-                SET date = ? 
-                WHERE id = ? AND squad = ?
-            """, (new_date_str, lesson['id'], squad_number))
-    
-    conn.commit()
-
-
-# ---------------------------------------------------------------------------
-# 🔹 GET /platoons
-# ---------------------------------------------------------------------------
 @app.get("/platoons")
-def get_platoons(department_id: Optional[int] = Query(None)):
-    """
-    Получить взводы (с фильтром по кафедре)
-    """
+def get_platoons(
+    department_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db)
+):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        query = """
-            SELECT 
-                sq.number,
-                d.name as department_name
-            FROM squads sq
-            JOIN departments d ON sq.department_id = d.id
-        """
-        params = []
+        query = db.query(
+            models.Squad.number,
+            models.Department.name.label("department_name")
+        ).join(
+            models.Department,
+            models.Squad.department_id == models.Department.id
+        )
         
         if department_id:
-            query += " WHERE sq.department_id = ?"
-            params.append(department_id)
+            query = query.filter(models.Squad.department_id == department_id)
         
-        query += " ORDER BY sq.number"
-        
-        cursor.execute(query, params)
-        platoons = cursor.fetchall()
-        conn.close()
-        
-        return [{"number": row["number"], "department_name": row["department_name"]} for row in platoons]
-        
+        platoons = query.order_by(models.Squad.number).all()
+        return [{"number": row.number, "department_name": row.department_name} for row in platoons]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения взводов: {str(e)}")
 
-# ---------------------------------------------------------------------------
-# 🔹 GET /platoons/{platoon_number}
-# ---------------------------------------------------------------------------
 @app.get("/platoons/{platoon_number}")
-def get_platoon_details(platoon_number: str):
-    """
-    Получить детальную информацию о взводе
-    """
+def get_platoon_details(platoon_number: str, db: Session = Depends(get_db)):
     try:
         print(f"🔍 Получение данных взвода: {platoon_number}")
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT 
-                sq.number,
-                sq.day,
-                sq.start_week,
-                sq.end_week,
-                sq.department_id,
-                d.name as department_name,
-                st.id as squad_type_id,
-                st.type,
-                st.course
-            FROM squads sq
-            JOIN departments d ON sq.department_id = d.id
-            JOIN squad_types st ON sq.squad_type_id = st.id
-            WHERE sq.number = ?
-        """, (platoon_number,))
-        
-        platoon = cursor.fetchone()
-        conn.close()
-        
+        platoon = crud.get_platoon_details(db, platoon_number)
         if not platoon:
             raise HTTPException(status_code=404, detail="Взвод не найден")
-        
-        result = dict(platoon)
-        print(f"✅ Данные взвода: {result}")
-        return result
-        
+        return dict(platoon)
     except HTTPException:
         raise
     except Exception as e:
         print(f"❌ Ошибка получения данных взвода: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения данных взвода: {str(e)}")
 
-
-# ---------------------------------------------------------------------------
-# 🔹 PUT /platoons/{platoon_number} - ИСПРАВЛЕННЫЙ
-# ---------------------------------------------------------------------------
 @app.put("/platoons/{platoon_number}")
-def update_platoon(platoon_number: str, data: dict):
+def update_platoon(platoon_number: str, data: dict, db: Session = Depends(get_db)):
     """
     Обновить данные взвода и пересчитать расписание
     """
     try:
         print(f"🔄 Обновление взвода {platoon_number}: {data}")
         
-        from datetime import datetime, timedelta
-        conn = get_db_connection()
-        cursor = conn.cursor()
+
         
         # Получаем текущие данные взвода
-        cursor.execute("""
-            SELECT squad_type_id, day, start_week, end_week 
-            FROM squads WHERE number = ?
-        """, (platoon_number,))
+        current_squad = db.query(models.Squad).filter(
+            models.Squad.number == platoon_number
+        ).first()
         
-        current_data = cursor.fetchone()
-        if not current_data:
+        if not current_squad:
             raise HTTPException(status_code=404, detail="Взвод не найден")
         
-        print("t1 - Проверка взвода выполнена")
+        old_start_week = current_squad.start_week
+        old_end_week = current_squad.end_week
+        old_day = current_squad.day
         
-        old_start_week = current_data['start_week']
-        old_end_week = current_data['end_week']
-        old_day = current_data['day']
-        
-        updates = []
-        params = []
-        
-        # Обновление типа взвода
+        # Обновление полей
         if "squad_type_id" in data:
-            cursor.execute("SELECT id FROM squad_types WHERE id = ?", (data["squad_type_id"],))
-            if cursor.fetchone():
-                updates.append("squad_type_id = ?")
-                params.append(data["squad_type_id"])
-            else:
+            squad_type = db.query(models.SquadType).filter(
+                models.SquadType.id == data["squad_type_id"]
+            ).first()
+            if not squad_type:
                 raise HTTPException(status_code=400, detail="Тип взвода не найден")
-        print("t2 - Тип взвода")
+            current_squad.squad_type_id = data["squad_type_id"]
         
-        # Обновление дня недели
-        new_day = old_day  # По умолчанию оставляем старый
+        new_day = old_day
         if "day" in data:
             if 1 <= data["day"] <= 7:
-                updates.append("day = ?")
-                params.append(data["day"])
+                current_squad.day = data["day"]
                 new_day = data["day"]
             else:
                 raise HTTPException(status_code=400, detail="День недели должен быть от 1 до 7")
-        print("t3 - День недели")
         
-        # Обновление недели начала
-        new_start_week = old_start_week  # По умолчанию оставляем старый
+        new_start_week = old_start_week
         if "start_week" in data:
             if data["start_week"] is None:
-                updates.append("start_week = NULL")
+                current_squad.start_week = None
                 new_start_week = None
             elif 1 <= data["start_week"] <= 52:
-                updates.append("start_week = ?")
-                params.append(data["start_week"])
+                current_squad.start_week = data["start_week"]
                 new_start_week = data["start_week"]
             else:
                 raise HTTPException(status_code=400, detail="Неделя начала должна быть от 1 до 52")
-        print("t4 - Неделя начала")
         
-        # Обновление недели окончания
-        new_end_week = old_end_week  # По умолчанию оставляем старый
+        new_end_week = old_end_week
         if "end_week" in data:
             if data["end_week"] is None:
-                updates.append("end_week = NULL")
+                current_squad.end_week = None
                 new_end_week = None
             elif 1 <= data["end_week"] <= 52:
-                updates.append("end_week = ?")
-                params.append(data["end_week"])
+                current_squad.end_week = data["end_week"]
                 new_end_week = data["end_week"]
             else:
                 raise HTTPException(status_code=400, detail="Неделя окончания должна быть от 1 до 52")
-        print("t5 - Неделя окончания")
         
-        # Валидация: неделя начала должна быть меньше недели окончания
+        # Валидация
         if (new_start_week is not None and new_end_week is not None and
             new_start_week >= new_end_week):
             raise HTTPException(status_code=400, detail="Неделя начала должна быть меньше недели окончания")
-        print("t6 - Валидация недель")
         
-        # Проверяем, были ли реальные изменения в данных
+        # Проверяем изменения
         has_changes = any([
             "squad_type_id" in data,
             ("day" in data and data["day"] != old_day),
@@ -975,35 +301,16 @@ def update_platoon(platoon_number: str, data: dict):
         
         if not has_changes:
             print("🔄 Нет изменений для обновления")
-            conn.close()
             return {"success": True, "message": "Нет изменений для обновления"}
         
-        # Обновляем данные взвода
-        if updates:
-            params.append(platoon_number)
-            query = f"UPDATE squads SET {', '.join(updates)} WHERE number = ?"
-            print(f"📝 SQL запрос: {query}")
-            print(f"📝 Параметры: {params}")
-            
-            cursor.execute(query, params)
-            conn.commit()
-            print(f"✅ Взвод {platoon_number} обновлен")
-        
-        # Теперь работаем с расписанием
-        print("🎯 Начинаем обработку расписания...")
+        db.commit()
+        db.refresh(current_squad)
+        print(f"✅ Взвод {platoon_number} обновлен")
         
         # Определяем, нужно ли обновлять расписание
-        # Расписание нужно обновлять если:
-        # 1. Изменился день недели
-        # 2. Изменился start_week
-        # 3. Изменился end_week
-        # 4. Было добавлено start_week/end_week (с NULL на значение)
-        # 5. Было убрано start_week/end_week (с значения на NULL)
-        
         schedule_needs_update = False
         schedule_reason = ""
         
-        # Проверяем изменения в параметрах расписания
         day_changed = "day" in data and data["day"] != old_day
         start_week_changed = ("start_week" in data and 
                              data.get("start_week") != old_start_week)
@@ -1026,7 +333,7 @@ def update_platoon(platoon_number: str, data: dict):
                 schedule_reason += " и "
             schedule_reason += "изменена неделя окончания"
         
-        # Особые случаи: добавление или удаление недель (переход с/на NULL)
+        # Особые случаи: добавление или удаление недель
         if ("start_week" in data and data["start_week"] is None and old_start_week is not None):
             schedule_needs_update = True
             schedule_reason = "удалена неделя начала"
@@ -1047,34 +354,26 @@ def update_platoon(platoon_number: str, data: dict):
         
         if not schedule_needs_update:
             print("📅 Параметры расписания не изменились - пропускаем обновление")
-            conn.close()
             return {"success": True, "message": "Данные обновлены"}
         
-        # Получаем обновленные данные
-        cursor.execute("""
-            SELECT day, start_week, end_week 
-            FROM squads WHERE number = ?
-        """, (platoon_number,))
-        updated_data = cursor.fetchone()
-        
         # Проверяем, есть ли уже занятия у взвода
-        cursor.execute("SELECT COUNT(*) as count FROM lessons WHERE squad = ?", (platoon_number,))
-        lesson_count = cursor.fetchone()['count']
+        lesson_count = db.execute(text("""
+            SELECT COUNT(*) as count FROM lessons WHERE squad = :squad
+        """), {"squad": platoon_number}).scalar()
         
         if lesson_count == 0:
-            # Если занятий нет - создаем новые, если указаны недели
-            if updated_data['start_week'] and updated_data['end_week']:
+            # Если занятий нет - создаем новые
+            if current_squad.start_week and current_squad.end_week:
                 print(f"📝 Создаем новое расписание...")
                 squad_info = {
-                    'day': updated_data['day'],
-                    'start_week': updated_data['start_week'],
-                    'end_week': updated_data['end_week']
+                    'day': current_squad.day,
+                    'start_week': current_squad.start_week,
+                    'end_week': current_squad.end_week
                 }
-                lessons_created = generate_lessons_for_squad(conn, platoon_number, squad_info)
+                lessons_created = generate_lessons_for_squad(db, platoon_number, squad_info)
                 print(f"✅ Создано {lessons_created} занятий")
             else:
                 print("⚠️ Не указаны недели - расписание не создано")
-            
         else:
             # Если занятия есть, анализируем изменения
             old_duration = old_end_week - old_start_week if old_end_week and old_start_week else 0
@@ -1093,24 +392,27 @@ def update_platoon(platoon_number: str, data: dict):
                 # Можем просто сдвинуть занятия
                 week_shift = new_start_week - old_start_week
                 print(f"↕️ Сдвигаем занятия на {week_shift} недель")
-                shift_squad_lessons(conn, platoon_number, week_shift)
+                shift_squad_lessons(db, platoon_number, week_shift)
                 
                 # Если end_week изменился, добавляем или удаляем занятия
                 if end_week_changed:
                     print("🔧 Корректируем занятия из-за изменения end_week")
                     
                     # Получаем текущие даты после сдвига
-                    cursor.execute("SELECT DISTINCT date FROM lessons WHERE squad = ? ORDER BY date", 
-                                 (platoon_number,))
-                    current_dates = [row['date'] for row in cursor.fetchall()]
+                    result = db.execute(text("""
+                        SELECT DISTINCT date FROM lessons 
+                        WHERE squad = :squad 
+                        ORDER BY date
+                    """), {"squad": platoon_number})
+                    current_dates = [row.date for row in result.fetchall()]
                     
                     # Генерируем новые даты которые должны быть
                     squad_info = {
-                        'day': updated_data['day'],
-                        'start_week': updated_data['start_week'],
-                        'end_week': updated_data['end_week']
+                        'day': current_squad.day,
+                        'start_week': current_squad.start_week,
+                        'end_week': current_squad.end_week
                     }
-                    target_dates = generate_lesson_dates_for_squad(squad_info, conn)
+                    target_dates = generate_lesson_dates_for_squad(squad_info, db)
                     
                     # Находим даты которые нужно добавить
                     dates_to_add = [d for d in target_dates if d not in current_dates]
@@ -1122,40 +424,42 @@ def update_platoon(platoon_number: str, data: dict):
                     for date in dates_to_add:
                         for seq_num in range(1, 5):
                             try:
-                                cursor.execute("""
+                                db.execute(text("""
                                     INSERT OR IGNORE INTO lessons (squad, date, sequence_number)
-                                    VALUES (?, ?, ?)
-                                """, (platoon_number, date, seq_num))
+                                    VALUES (:squad, :date, :seq)
+                                """), {
+                                    "squad": platoon_number,
+                                    "date": date,
+                                    "seq": seq_num
+                                })
                             except Exception as e:
                                 print(f"Ошибка добавления занятия: {e}")
                     
                     # Удаляем лишние даты
                     if dates_to_remove:
                         placeholders = ','.join(['?' for _ in dates_to_remove])
-                        cursor.execute(f"""
+                        db.execute(text(f"""
                             DELETE FROM lessons 
-                            WHERE squad = ? AND date IN ({placeholders})
-                        """, (platoon_number, *dates_to_remove))
+                            WHERE squad = :squad AND date IN ({placeholders})
+                        """), {"squad": platoon_number, **{f"p{i}": date for i, date in enumerate(dates_to_remove)}})
                         print(f"🗑️ Удалено занятий в {len(dates_to_remove)} дней")
                     
-                    conn.commit()
                     print(f"➕ Добавлено занятий в {len(dates_to_add)} дней")
                     
             else:
                 # Нельзя сдвинуть - пересоздаем полностью
                 print("🔄 Пересоздаем расписание полностью...")
-                clear_squad_lessons(conn, platoon_number)
+                clear_squad_lessons(db, platoon_number)
                 
-                if updated_data['start_week'] and updated_data['end_week']:
+                if current_squad.start_week and current_squad.end_week:
                     squad_info = {
-                        'day': updated_data['day'],
-                        'start_week': updated_data['start_week'],
-                        'end_week': updated_data['end_week']
+                        'day': current_squad.day,
+                        'start_week': current_squad.start_week,
+                        'end_week': current_squad.end_week
                     }
-                    lessons_created = generate_lessons_for_squad(conn, platoon_number, squad_info)
+                    lessons_created = generate_lessons_for_squad(db, platoon_number, squad_info)
                     print(f"✅ Создано {lessons_created} занятий")
         
-        conn.close()
         return {"success": True, "message": "Данные и расписание обновлены"}
         
     except HTTPException:
@@ -1163,18 +467,49 @@ def update_platoon(platoon_number: str, data: dict):
     except Exception as e:
         print(f"❌ Ошибка обновления взвода: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка обновления взвода: {str(e)}")
+    
+@app.post("/platoons/{platoon_number}/rename")
+def rename_platoon(platoon_number: str, data: dict, db: Session = Depends(get_db)):
+    try:
+        new_number = data.get("newNumber")
+        if not new_number:
+            raise HTTPException(status_code=400, detail="Не указан новый номер")
+        
+        result = crud.rename_platoon(db, platoon_number, new_number)
+        if not result:
+            raise HTTPException(status_code=400, detail="Невозможно переименовать взвод")
+        
+        return {"success": True, "message": f"Взвод переименован в {new_number}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка переименования: {str(e)}")
 
-# ---------------------------------------------------------------------------
-# 🔹 POST /platoons - ОБНОВЛЕННЫЙ
-# ---------------------------------------------------------------------------
+@app.delete("/platoons/{platoon_number}")
+def delete_platoon(platoon_number: str, db: Session = Depends(get_db)):
+    try:
+        # Проверяем существование взвода
+        platoon = db.query(models.Squad).filter(models.Squad.number == platoon_number).first()
+        if not platoon:
+            raise HTTPException(status_code=404, detail="Взвод не найден")
+        
+        # Удаляем связанные данные
+        db.query(models.Lesson).filter(models.Lesson.squad == platoon_number).delete()
+        db.query(models.SquadSubjectLoad).filter(models.SquadSubjectLoad.squad == platoon_number).delete()
+        db.delete(platoon)
+        db.commit()
+        
+        return {"success": True, "message": "Взвод удален"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка удаления: {str(e)}")
+
 @app.post("/platoons")
-def add_platoon(data: dict):
-    """
-    Добавить новый взвод и создать для него расписание
-    """
+def add_platoon(data: dict, db: Session = Depends(get_db)):
     try:
         print(f"📦 Получены данные: {data}")
-
+        
         number = data.get("number")
         department_id = data.get("departmentId")
         squad_type_id = data.get("squadTypeId")
@@ -1194,37 +529,32 @@ def add_platoon(data: dict):
         
         if start_week and end_week and start_week >= end_week:
             raise HTTPException(status_code=400, detail="Неделя начала должна быть меньше недели окончания")
-        print("1")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        print("2")
-        
-        # Проверяем, не существует ли уже взвод с таким номером
-        cursor.execute("SELECT number FROM squads WHERE number = ?", (number,))
-        if cursor.fetchone():
+        # Проверяем существование
+        existing = db.query(models.Squad).filter(models.Squad.number == number).first()
+        if existing:
             raise HTTPException(status_code=400, detail="Взвод с таким номером уже существует")
-        print("3")
         
-        # Проверяем существование кафедры
-        cursor.execute("SELECT id FROM departments WHERE id = ?", (department_id,))
-        if not cursor.fetchone():
+        dept = db.query(models.Department).filter(models.Department.id == department_id).first()
+        if not dept:
             raise HTTPException(status_code=400, detail="Кафедра не найдена")
-        print("4")
         
-        # Проверяем существование типа взвода
-        cursor.execute("SELECT id FROM squad_types WHERE id = ?", (squad_type_id,))
-        if not cursor.fetchone():
+        squad_type = db.query(models.SquadType).filter(models.SquadType.id == squad_type_id).first()
+        if not squad_type:
             raise HTTPException(status_code=400, detail="Тип взвода не найден")
-        print("5")
-
-        # Добавляем взвод
-        cursor.execute("""
-            INSERT INTO squads (number, department_id, squad_type_id, day, start_week, end_week)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (number, department_id, squad_type_id, day, start_week, end_week))
         
-        conn.commit()
+        # Создаем взвод
+        squad = models.Squad(
+            number=number,
+            department_id=department_id,
+            squad_type_id=squad_type_id,
+            day=day,
+            start_week=start_week,
+            end_week=end_week
+        )
+        db.add(squad)
+        db.commit()
+        db.refresh(squad)
         
         # Создаем расписание для взвода, если указаны недели
         if start_week and end_week:
@@ -1234,428 +564,211 @@ def add_platoon(data: dict):
                 'start_week': start_week,
                 'end_week': end_week
             }
-            lessons_created = generate_lessons_for_squad(conn, number, squad_info)
+            
+            from repository.schedule_generator import generate_lessons_for_squad
+            lessons_created = generate_lessons_for_squad(db, number, squad_info)
             print(f"✅ Создано {lessons_created} занятий для взвода {number}")
         
-        conn.close()
-        
         return {"success": True, "message": "Взвод и расписание созданы", "number": number}
-        
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка добавления взвода: {str(e)}")
 
-# ---------------------------------------------------------------------------
-# 🔹 POST /platoons/{platoon_number}/rename
-# ---------------------------------------------------------------------------
-@app.post("/platoons/{platoon_number}/rename")
-def rename_platoon(platoon_number: str, data: dict):
-    """
-    Переименовать взвод
-    """
-    try:
-
-        new_number = data.get("newNumber")
-        if not new_number:
-            raise HTTPException(status_code=400, detail="Не указан новый номер")
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        print(new_number)
-        
-        # Проверяем существование старого взвода
-        cursor.execute("SELECT number FROM squads WHERE number = ?", (platoon_number,))
-        if not cursor.fetchone():
-            raise HTTPException(status_code=404, detail="Взвод не найден")
-        print(new_number)
-        
-        # Проверяем, не занят ли новый номер
-        cursor.execute("SELECT number FROM squads WHERE number = ?", (new_number,))
-        if cursor.fetchone():
-            raise HTTPException(status_code=400, detail="Взвод с таким номером уже существует")
-        print(new_number)
-        
-        # Обновляем номер во всех связанных таблицах
-        conn.execute("BEGIN TRANSACTION")
-        
-        try:
-            print("try1")
-            # 1. Обновляем squads
-            cursor.execute("UPDATE squads SET number = ? WHERE number = ?", (new_number, platoon_number))
-            print("try2")
-            
-            # 2. Обновляем squad_subject_loads
-            cursor.execute("UPDATE squad_subject_loads SET squad = ? WHERE squad = ?", (new_number, platoon_number))
-            
-            print("try3")
-            # 3. Обновляем lessons
-            cursor.execute("UPDATE lessons SET squad = ? WHERE squad = ?", (new_number, platoon_number))
-            
-            conn.commit()
-            
-        except Exception as e:
-            conn.rollback()
-            raise
-        
-        conn.close()
-        return {"success": True, "message": f"Взвод переименован в {new_number}"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка переименования: {str(e)}")
-
-# ---------------------------------------------------------------------------
-# 🔹 DELETE /platoons/{platoon_number}
-# ---------------------------------------------------------------------------
-@app.delete("/platoons/{platoon_number}")
-def delete_platoon(platoon_number: str):
-    """
-    Удалить взвод
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Проверяем существование взвода
-        cursor.execute("SELECT number FROM squads WHERE number = ?", (platoon_number,))
-        if not cursor.fetchone():
-            raise HTTPException(status_code=404, detail="Взвод не найден")
-        
-        # Удаляем связанные данные
-        conn.execute("BEGIN TRANSACTION")
-        try:
-            # 1. Удаляем уроки взвода
-            cursor.execute("DELETE FROM lessons WHERE squad = ?", (platoon_number,))
-            
-            # 2. Удаляем связи с предметами
-            cursor.execute("DELETE FROM squad_subject_loads WHERE squad = ?", (platoon_number,))
-            
-            # 3. Удаляем сам взвод
-            cursor.execute("DELETE FROM squads WHERE number = ?", (platoon_number,))
-            
-            conn.commit()
-            
-        except Exception as e:
-            conn.rollback()
-            raise
-        
-        conn.close()
-        return {"success": True, "message": "Взвод удален"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка удаления: {str(e)}")
-
-
-
-# ============================================================================
-# ДИСЦИПЛИНЫ (НАГРУЗКИ)
-# ============================================================================
-
+# ------------------------ DISCIPLINES ------------------------
 @app.get("/disciplines/subject-loads")
-def get_subject_loads():
+def get_subject_loads(db: Session = Depends(get_db)):
     """
     Получить все нагрузки
     """
     try:
         print("🔄 Получение всех нагрузок")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        # Используем SQLAlchemy ORM с правильным join
+        loads = db.query(
+            models.SubjectLoad.id,
+            models.Subject.name.label("subject_name"),
+            models.Department.name.label("department_name"),
+            models.SquadType.type,
+            models.SquadType.course,
+            models.SubjectLoad.semester
+        ).join(
+            models.Subject, models.SubjectLoad.subject_id == models.Subject.id
+        ).join(
+            models.Department, models.SubjectLoad.department_id == models.Department.id
+        ).join(
+            models.SquadType, models.SubjectLoad.squad_type_id == models.SquadType.id
+        ).order_by(
+            models.Subject.name,
+            models.SquadType.course,
+            models.SubjectLoad.semester
+        ).all()
         
-        cursor.execute("""
-            SELECT 
-                sl.id,
-                s.name as subject_name,
-                d.name as department_name,
-                st.type,
-                st.course,
-                sl.semester
-            FROM subject_loads sl
-            JOIN subjects s ON sl.subject_id = s.id
-            JOIN departments d ON sl.department_id = d.id
-            JOIN squad_types st ON sl.squad_type_id = st.id
-            ORDER BY s.name, st.course, sl.semester
-        """)
+        # Преобразуем в список словарей
+        result = []
+        for load in loads:
+            result.append({
+                "id": load.id,
+                "subject_name": load.subject_name,
+                "department_name": load.department_name,
+                "type": load.type,
+                "course": load.course,
+                "semester": load.semester
+            })
         
-        loads = cursor.fetchall()
-        conn.close()
-        
-        result = [dict(row) for row in loads]
         print(f"✅ Найдено нагрузок: {len(result)}")
         return result
         
     except Exception as e:
         print(f"❌ Ошибка получения нагрузок: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения нагрузок: {str(e)}")
-
-# ---------------------------------------------------------------------------
-# 🔹 GET /disciplines/platoon-loads/{platoon_number}
-# ---------------------------------------------------------------------------
+    
 @app.get("/disciplines/platoon-loads/{platoon_number}")
-def get_platoon_loads(platoon_number: str):
-    """
-    Получить все нагрузки, привязанные к взводу
-    """
+def get_platoon_loads(platoon_number: str, db: Session = Depends(get_db)):
+    """Получить все нагрузки, привязанные к взводу"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Получаем все нагрузки, привязанные к взводу
-        cursor.execute("""
-            SELECT 
-                sl.id,
-                s.name as subject_name,
-                d.name as department_name,
-                st.type,
-                st.course,
-                sl.semester,
-                ssl.officers,
-                GROUP_CONCAT(shlc.hours_count) as total_hours
-            FROM squad_subject_loads ssl
-            JOIN subject_loads sl ON ssl.subject_load_id = sl.id
-            JOIN subjects s ON sl.subject_id = s.id
-            JOIN departments d ON sl.department_id = d.id
-            JOIN squad_types st ON sl.squad_type_id = st.id
-            LEFT JOIN subject_hours_load_count shlc ON sl.id = shlc.subject_load_id
-            WHERE ssl.squad = ?
-            GROUP BY sl.id
-            ORDER BY s.name
-        """, (platoon_number,))
-        
-        loads = cursor.fetchall()
+        loads = db.query(
+            models.SubjectLoad.id,
+            models.Subject.name.label("subject_name"),
+            models.Department.name.label("department_name"),
+            models.SquadType.type,
+            models.SquadType.course,
+            models.SubjectLoad.semester,
+            models.SquadSubjectLoad.officers
+        ).join(
+            models.SquadSubjectLoad, models.SquadSubjectLoad.subject_load_id == models.SubjectLoad.id
+        ).join(
+            models.Subject, models.Subject.id == models.SubjectLoad.subject_id
+        ).join(
+            models.Department, models.SubjectLoad.department_id == models.Department.id
+        ).join(
+            models.SquadType, models.SubjectLoad.squad_type_id == models.SquadType.id
+        ).filter(
+            models.SquadSubjectLoad.squad == platoon_number
+        ).group_by(
+            models.SubjectLoad.id
+        ).order_by(
+            models.Subject.name
+        ).all()
         
         result = []
         for row in loads:
             # Парсим преподавателей
             officers = []
-            if row["officers"]:
-                officers = [int(id.strip()) for id in row["officers"].split("/") if id.strip()]
+            if row.officers:
+                officers = [int(id.strip()) for id in row.officers.split("/") if id.strip()]
             
             # Получаем часы нагрузки
-            cursor.execute("""
-                SELECT 
-                    shlc.lesson_type_id,
-                    lt.name as lesson_type_name,
-                    shlc.hours_count,
-                    shlc.audiences
-                FROM subject_hours_load_count shlc
-                JOIN lesson_types lt ON shlc.lesson_type_id = lt.id
-                WHERE shlc.subject_load_id = ?
-            """, (row["id"],))
+            hours_load = db.query(
+                models.SubjectHoursLoadCount.lesson_type_id,
+                models.LessonType.name.label("lesson_type_name"),
+                models.SubjectHoursLoadCount.hours_count,
+                models.SubjectHoursLoadCount.audiences
+            ).join(
+                models.LessonType, models.SubjectHoursLoadCount.lesson_type_id == models.LessonType.id
+            ).filter(
+                models.SubjectHoursLoadCount.subject_load_id == row.id
+            ).all()
             
-            hours_load = cursor.fetchall()
+            total_hours = sum([h.hours_count for h in hours_load]) if hours_load else 0
             
             result.append({
-                "id": row["id"],
-                "subject_name": row["subject_name"],
-                "department_name": row["department_name"],
-                "type": row["type"],
-                "course": row["course"],
-                "semester": row["semester"],
+                "id": row.id,
+                "subject_name": row.subject_name,
+                "department_name": row.department_name,
+                "type": row.type,
+                "course": row.course,
+                "semester": row.semester,
                 "officers": officers,
-                "total_hours": sum([h["hours_count"] for h in hours_load]) if hours_load else 0,
-                "hours_load": [dict(h) for h in hours_load]
+                "total_hours": total_hours,
+                "hours_load": [
+                    {
+                        "lesson_type_id": h.lesson_type_id,
+                        "lesson_type_name": h.lesson_type_name,
+                        "hours_count": h.hours_count,
+                        "audiences": h.audiences
+                    }
+                    for h in hours_load
+                ]
             })
         
-        conn.close()
         return result
         
     except Exception as e:
         print(f"❌ Ошибка получения нагрузок взвода: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения нагрузок взвода: {str(e)}")
-
-# ---------------------------------------------------------------------------
-# 🔹 GET /disciplines/available-loads-for-platoon
-# ---------------------------------------------------------------------------
+    
 @app.get("/disciplines/available-loads-for-platoon")
-def get_available_loads_for_platoon(platoon_number: str):
-    """
-    Получить нагрузки, доступные для привязки к взводу
-    """
+def get_available_loads_for_platoon(
+    platoon_number: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Получить нагрузки, доступные для привязки к взводу"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Получаем тип взвода
-        cursor.execute("""
-            SELECT squad_type_id, department_id
-            FROM squads
-            WHERE number = ?
-        """, (platoon_number,))
-        
-        platoon = cursor.fetchone()
+        platoon = db.query(models.Squad).filter(models.Squad.number == platoon_number).first()
         if not platoon:
             raise HTTPException(status_code=404, detail="Взвод не найден")
         
-        squad_type_id = platoon["squad_type_id"]
-        department_id = platoon["department_id"]
+        squad_type_id = platoon.squad_type_id
+        department_id = platoon.department_id
         
         # Получаем нагрузки, которые еще не привязаны к этому взводу
-        cursor.execute("""
-            SELECT 
-                sl.id,
-                s.name as subject_name,
-                d.name as department_name,
-                st.type,
-                st.course,
-                sl.semester
-            FROM subject_loads sl
-            JOIN subjects s ON sl.subject_id = s.id
-            JOIN departments d ON sl.department_id = d.id
-            JOIN squad_types st ON sl.squad_type_id = st.id
-            WHERE sl.squad_type_id = ? 
-            AND sl.department_id = ?
-            AND sl.id NOT IN (
-                SELECT subject_load_id 
-                FROM squad_subject_loads 
-                WHERE squad = ?
+        loads = db.query(
+            models.SubjectLoad.id,
+            models.Subject.name.label("subject_name"),
+            models.Department.name.label("department_name"),
+            models.SquadType.type,
+            models.SquadType.course,
+            models.SubjectLoad.semester
+        ).join(
+            models.Subject, models.SubjectLoad.subject_id == models.Subject.id
+        ).join(
+            models.Department, models.SubjectLoad.department_id == models.Department.id
+        ).join(
+            models.SquadType, models.SubjectLoad.squad_type_id == models.SquadType.id
+        ).filter(
+            models.SubjectLoad.squad_type_id == squad_type_id,
+            models.SubjectLoad.department_id == department_id
+        ).filter(
+            ~models.SubjectLoad.id.in_(
+                db.query(models.SquadSubjectLoad.subject_load_id)
+                .filter(models.SquadSubjectLoad.squad == platoon_number)
             )
-            ORDER BY s.name, st.course, sl.semester
-        """, (squad_type_id, department_id, platoon_number))
+        ).order_by(
+            models.Subject.name,
+            models.SquadType.course,
+            models.SubjectLoad.semester
+        ).all()
         
-        loads = cursor.fetchall()
-        conn.close()
+        result = []
+        for load in loads:
+            result.append({
+                "id": load.id,
+                "subject_name": load.subject_name,
+                "department_name": load.department_name,
+                "type": load.type,
+                "course": load.course,
+                "semester": load.semester
+            })
         
-        return [dict(row) for row in loads]
+        return result
         
     except HTTPException:
         raise
     except Exception as e:
         print(f"❌ Ошибка получения доступных нагрузок: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения доступных нагрузок: {str(e)}")
-
+    
 @app.get("/disciplines/subject-loads/{subject_load_id}")
-def get_subject_load_details(subject_load_id: int):
-    """
-    Получить детальную информацию о нагрузке
-    """
+def get_subject_load_details_api(subject_load_id: int, db: Session = Depends(get_db)):
     try:
         print(f"🔄 Получение деталей нагрузки ID={subject_load_id}")
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Основная информация
-        cursor.execute("""
-            SELECT 
-                sl.id,
-                sl.subject_id,
-                sl.department_id,
-                sl.squad_type_id,
-                sl.semester,
-                s.name as subject_name,
-                d.name as department_name,
-                st.type,
-                st.course
-            FROM subject_loads sl
-            JOIN subjects s ON sl.subject_id = s.id
-            JOIN departments d ON sl.department_id = d.id
-            JOIN squad_types st ON sl.squad_type_id = st.id
-            WHERE sl.id = ?
-        """, (subject_load_id,))
-        
-        load = cursor.fetchone()
-        if not load:
+        details = crud.get_subject_load_details(db, subject_load_id)
+        if not details:
             raise HTTPException(status_code=404, detail="Нагрузка не найдена")
-        
-        # Привязанные взводы
-        cursor.execute("""
-            SELECT 
-                ssl.squad as squad_number,
-                d.name as department_name,
-                ssl.officers
-            FROM squad_subject_loads ssl
-            JOIN squads sq ON ssl.squad = sq.number
-            JOIN departments d ON sq.department_id = d.id
-            WHERE ssl.subject_load_id = ?
-        """, (subject_load_id,))
-        
-        squads_rows = cursor.fetchall()
-        squads = []
-        for row in squads_rows:
-            officer_ids = []
-            officers = []
-            if row["officers"]:
-                officer_ids = [int(id.strip()) for id in row["officers"].split("/") if id.strip()]
-                
-                if officer_ids:
-                    placeholders = ','.join('?' * len(officer_ids))
-                    cursor.execute(f"""
-                        SELECT id, first_name, second_name, surname
-                        FROM officers
-                        WHERE id IN ({placeholders})
-                    """, officer_ids)
-                    officers = [dict(officer) for officer in cursor.fetchall()]
-            
-            squads.append({
-                "squad_number": row["squad_number"],
-                "department_name": row["department_name"],
-                "officer_ids": officer_ids,
-                "officers": officers
-            })
-        
-        # Часы нагрузки
-        cursor.execute("""
-            SELECT 
-                shlc.lesson_type_id,
-                lt.name as lesson_type_name,
-                shlc.hours_count,
-                shlc.audiences
-            FROM subject_hours_load_count shlc
-            JOIN lesson_types lt ON shlc.lesson_type_id = lt.id
-            WHERE shlc.subject_load_id = ?
-        """, (subject_load_id,))
-        
-        hours_rows = cursor.fetchall()
-        hours_load = []
-        for row in hours_rows:
-            audiences = []
-            if row["audiences"]:
-                # Преобразуем строку в массив
-                audiences = [a.strip() for a in row["audiences"].split("/") if a.strip()]
-            
-            hours_load.append({
-                "lesson_type_id": row["lesson_type_id"],
-                "lesson_type_name": row["lesson_type_name"],
-                "hours_count": row["hours_count"],
-                "audiences": audiences  # Теперь это массив, а не строка
-            })
-        
-        # Темы
-        cursor.execute("""
-            SELECT 
-                t.id,
-                t.lesson_type_id,
-                lt.name as lesson_type_name,
-                t.topic,
-                t.subtopic,
-                t.hours_count,
-                t.topic_name,
-                t.subtopic_name
-            FROM themes t
-            JOIN lesson_types lt ON t.lesson_type_id = lt.id
-            WHERE t.subject_load_id = ?
-            ORDER BY t.topic, t.subtopic
-        """, (subject_load_id,))
-        
-        themes = [dict(row) for row in cursor.fetchall()]
-        
-        conn.close()
-        
-        result = {
-            **dict(load),
-            "squads": squads,
-            "hours_load": hours_load,
-            "themes": themes
-        }
-        
-        print(f"✅ Данные нагрузки загружены")
-        return result
-        
+        return details
     except HTTPException:
         raise
     except Exception as e:
@@ -1663,10 +776,8 @@ def get_subject_load_details(subject_load_id: int):
         raise HTTPException(status_code=500, detail=f"Ошибка получения деталей нагрузки: {str(e)}")
 
 @app.post("/disciplines/subject-loads")
-def add_subject_load(data: dict):
-    """
-    Добавить новую нагрузку
-    """
+def add_subject_load(data: dict, db: Session = Depends(get_db)):
+    """Добавить новую нагрузку"""
     try:
         print(f"📦 Добавление новой нагрузки: {data}")
         
@@ -1679,44 +790,44 @@ def add_subject_load(data: dict):
             raise HTTPException(status_code=400, detail="Не указаны обязательные поля")
         
         # Проверка уникальности
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        existing = db.query(models.SubjectLoad).filter(
+            models.SubjectLoad.subject_id == subject_id,
+            models.SubjectLoad.department_id == department_id,
+            models.SubjectLoad.squad_type_id == squad_type_id,
+            models.SubjectLoad.semester == semester
+        ).first()
         
-        cursor.execute("""
-            SELECT id FROM subject_loads
-            WHERE subject_id = ? AND department_id = ? AND squad_type_id = ? AND semester = ?
-        """, (subject_id, department_id, squad_type_id, semester))
-        
-        if cursor.fetchone():
+        if existing:
             raise HTTPException(status_code=400, detail="Такая нагрузка уже существует")
         
         # Проверка существования предмета
-        cursor.execute("SELECT id FROM subjects WHERE id = ?", (subject_id,))
-        if not cursor.fetchone():
+        subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+        if not subject:
             raise HTTPException(status_code=400, detail="Предмет не найден")
         
         # Проверка существования кафедры
-        cursor.execute("SELECT id FROM departments WHERE id = ?", (department_id,))
-        if not cursor.fetchone():
+        department = db.query(models.Department).filter(models.Department.id == department_id).first()
+        if not department:
             raise HTTPException(status_code=400, detail="Кафедра не найден")
         
         # Проверка существования типа взвода
-        cursor.execute("SELECT id FROM squad_types WHERE id = ?", (squad_type_id,))
-        if not cursor.fetchone():
+        squad_type = db.query(models.SquadType).filter(models.SquadType.id == squad_type_id).first()
+        if not squad_type:
             raise HTTPException(status_code=400, detail="Тип взвода не найден")
         
         # Добавление нагрузки
-        cursor.execute("""
-            INSERT INTO subject_loads (subject_id, department_id, squad_type_id, semester)
-            VALUES (?, ?, ?, ?)
-        """, (subject_id, department_id, squad_type_id, semester))
+        subject_load = models.SubjectLoad(
+            subject_id=subject_id,
+            department_id=department_id,
+            squad_type_id=squad_type_id,
+            semester=semester
+        )
+        db.add(subject_load)
+        db.commit()
+        db.refresh(subject_load)
         
-        load_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        
-        print(f"✅ Нагрузка добавлена, ID={load_id}")
-        return {"success": True, "message": "Нагрузка добавлена", "id": load_id}
+        print(f"✅ Нагрузка добавлена, ID={subject_load.id}")
+        return {"success": True, "message": "Нагрузка добавлена", "id": subject_load.id}
         
     except HTTPException:
         raise
@@ -1725,76 +836,53 @@ def add_subject_load(data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка добавления нагрузки: {str(e)}")
 
 @app.put("/disciplines/subject-loads/{subject_load_id}")
-def update_subject_load(subject_load_id: int, data: dict):
-    """
-    Обновить нагрузку
-    """
+def update_subject_load(subject_load_id: int, data: dict, db: Session = Depends(get_db)):
+    """Обновить нагрузку"""
     try:
         print(f"🔄 Обновление нагрузки ID={subject_load_id}: {data}")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования нагрузки
-        cursor.execute("SELECT id FROM subject_loads WHERE id = ?", (subject_load_id,))
-        if not cursor.fetchone():
+        subject_load = db.query(models.SubjectLoad).filter(models.SubjectLoad.id == subject_load_id).first()
+        if not subject_load:
             raise HTTPException(status_code=404, detail="Нагрузка не найдена")
         
-        updates = []
-        params = []
-        
+        # Обновление полей
         if "subject_id" in data:
-            cursor.execute("SELECT id FROM subjects WHERE id = ?", (data["subject_id"],))
-            if cursor.fetchone():
-                updates.append("subject_id = ?")
-                params.append(data["subject_id"])
-            else:
+            subject = db.query(models.Subject).filter(models.Subject.id == data["subject_id"]).first()
+            if not subject:
                 raise HTTPException(status_code=400, detail="Предмет не найден")
+            subject_load.subject_id = data["subject_id"]
         
         if "department_id" in data:
-            cursor.execute("SELECT id FROM departments WHERE id = ?", (data["department_id"],))
-            if cursor.fetchone():
-                updates.append("department_id = ?")
-                params.append(data["department_id"])
-            else:
+            department = db.query(models.Department).filter(models.Department.id == data["department_id"]).first()
+            if not department:
                 raise HTTPException(status_code=400, detail="Кафедра не найдена")
+            subject_load.department_id = data["department_id"]
         
         if "squad_type_id" in data:
-            cursor.execute("SELECT id FROM squad_types WHERE id = ?", (data["squad_type_id"],))
-            if cursor.fetchone():
-                updates.append("squad_type_id = ?")
-                params.append(data["squad_type_id"])
-            else:
+            squad_type = db.query(models.SquadType).filter(models.SquadType.id == data["squad_type_id"]).first()
+            if not squad_type:
                 raise HTTPException(status_code=400, detail="Тип взвода не найден")
+            subject_load.squad_type_id = data["squad_type_id"]
         
         if "semester" in data:
-            updates.append("semester = ?")
-            params.append(data["semester"])
+            subject_load.semester = data["semester"]
         
-        if updates:
-            # Проверка уникальности после обновления
-            if "subject_id" in data or "department_id" in data or "squad_type_id" in data or "semester" in data:
-                cursor.execute("""
-                    SELECT id FROM subject_loads
-                    WHERE subject_id = ? AND department_id = ? AND squad_type_id = ? AND semester = ?
-                    AND id != ?
-                """, (
-                    data.get("subject_id") or (cursor.execute("SELECT subject_id FROM subject_loads WHERE id = ?", (subject_load_id,))).fetchone()[0],
-                    data.get("department_id") or (cursor.execute("SELECT department_id FROM subject_loads WHERE id = ?", (subject_load_id,))).fetchone()[0],
-                    data.get("squad_type_id") or (cursor.execute("SELECT squad_type_id FROM subject_loads WHERE id = ?", (subject_load_id,))).fetchone()[0],
-                    data.get("semester") or (cursor.execute("SELECT semester FROM subject_loads WHERE id = ?", (subject_load_id,))).fetchone()[0],
-                    subject_load_id
-                ))
-                
-                if cursor.fetchone():
-                    raise HTTPException(status_code=400, detail="Такая нагрузка уже существует")
-            
-            params.append(subject_load_id)
-            query = f"UPDATE subject_loads SET {', '.join(updates)} WHERE id = ?"
-            cursor.execute(query, params)
-            conn.commit()
+        # Проверка уникальности после обновления
+        existing = db.query(models.SubjectLoad).filter(
+            models.SubjectLoad.subject_id == subject_load.subject_id,
+            models.SubjectLoad.department_id == subject_load.department_id,
+            models.SubjectLoad.squad_type_id == subject_load.squad_type_id,
+            models.SubjectLoad.semester == subject_load.semester,
+            models.SubjectLoad.id != subject_load_id
+        ).first()
         
-        conn.close()
+        if existing:
+            raise HTTPException(status_code=400, detail="Такая нагрузка уже существует")
+        
+        db.commit()
+        db.refresh(subject_load)
+        
         return {"success": True, "message": "Нагрузка обновлена"}
         
     except HTTPException:
@@ -1804,46 +892,43 @@ def update_subject_load(subject_load_id: int, data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка обновления нагрузки: {str(e)}")
 
 @app.delete("/disciplines/subject-loads/{subject_load_id}")
-def delete_subject_load(subject_load_id: int):
-    """
-    Удалить нагрузку
-    """
+def delete_subject_load(subject_load_id: int, db: Session = Depends(get_db)):
+    """Удалить нагрузку"""
     try:
         print(f"🗑️ Удаление нагрузки ID={subject_load_id}")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования нагрузки
-        cursor.execute("SELECT id FROM subject_loads WHERE id = ?", (subject_load_id,))
-        if not cursor.fetchone():
+        subject_load = db.query(models.SubjectLoad).filter(models.SubjectLoad.id == subject_load_id).first()
+        if not subject_load:
             raise HTTPException(status_code=404, detail="Нагрузка не найдена")
         
-        # Удаление связанных данных
-        conn.execute("BEGIN TRANSACTION")
-        try:
-            # Удаляем темы
-            cursor.execute("DELETE FROM themes WHERE subject_load_id = ?", (subject_load_id,))
-            
-            # Удаляем часы нагрузки
-            cursor.execute("DELETE FROM subject_hours_load_count WHERE subject_load_id = ?", (subject_load_id,))
-            
-            # Удаляем привязки к взводам
-            cursor.execute("DELETE FROM squad_subject_loads WHERE subject_load_id = ?", (subject_load_id,))
-            
-            # Удаляем уроки, связанные с этой нагрузкой
-            cursor.execute("DELETE FROM lessons WHERE subject_load_id = ?", (subject_load_id,))
-            
-            # Удаляем саму нагрузку
-            cursor.execute("DELETE FROM subject_loads WHERE id = ?", (subject_load_id,))
-            
-            conn.commit()
-            
-        except Exception as e:
-            conn.rollback()
-            raise
+        # Удаление связанных данных в правильном порядке
+        # 1. Удаляем темы
+        db.query(models.Theme).filter(models.Theme.subject_load_id == subject_load_id).delete()
         
-        conn.close()
+        # 2. Удаляем часы нагрузки
+        db.query(models.SubjectHoursLoadCount).filter(
+            models.SubjectHoursLoadCount.subject_load_id == subject_load_id
+        ).delete()
+        
+        # 3. Удаляем привязки к взводам
+        db.query(models.SquadSubjectLoad).filter(
+            models.SquadSubjectLoad.subject_load_id == subject_load_id
+        ).delete()
+        
+        # 4. Обновляем уроки (очищаем связанные поля)
+        db.query(models.Lesson).filter(
+            models.Lesson.subject_load_id == subject_load_id
+        ).update({
+            "theme_id": None,
+            "subject_load_id": None,
+            "audience": None
+        })
+        
+        # 5. Удаляем саму нагрузку
+        db.delete(subject_load)
+        db.commit()
+        
         return {"success": True, "message": "Нагрузка удалена"}
         
     except HTTPException:
@@ -1854,121 +939,103 @@ def delete_subject_load(subject_load_id: int):
 
 # Списки для форм
 @app.get("/disciplines/subjects")
-def get_subjects_list():
+def get_subjects_list(db: Session = Depends(get_db)):
     """Получить все предметы"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, name FROM subjects ORDER BY name")
-        subjects = [{"id": row["id"], "name": row["name"]} for row in cursor.fetchall()]
-        conn.close()
-        return subjects
+        subjects = db.query(models.Subject).order_by(models.Subject.name).all()
+        return [{"id": subj.id, "name": subj.name} for subj in subjects]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения предметов: {str(e)}")
 
 @app.get("/disciplines/departments")
-def get_departments_list():
+def get_departments_list(db: Session = Depends(get_db)):
     """Получить все кафедры"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, name FROM departments ORDER BY name")
-        departments = [{"id": row["id"], "name": row["name"]} for row in cursor.fetchall()]
-        conn.close()
-        return departments
+        departments = db.query(models.Department).order_by(models.Department.name).all()
+        return [{"id": dept.id, "name": dept.name} for dept in departments]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения кафедр: {str(e)}")
 
 @app.get("/disciplines/squad-types")
-def get_squad_types_list():
+def get_squad_types_list(db: Session = Depends(get_db)):
     """Получить все типы взводов"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, type, course FROM squad_types ORDER BY type, course")
-        squad_types = [{"id": row["id"], "type": row["type"], "course": row["course"]} for row in cursor.fetchall()]
-        conn.close()
-        return squad_types
+        squad_types = db.query(models.SquadType).order_by(models.SquadType.type, models.SquadType.course).all()
+        return [{"id": st.id, "type": st.type, "course": st.course} for st in squad_types]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения типов взводов: {str(e)}")
 
 @app.get("/disciplines/lesson-types")
-def get_lesson_types_list():
+def get_lesson_types_list(db: Session = Depends(get_db)):
     """Получить все типы занятий"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, name FROM lesson_types ORDER BY name")
-        lesson_types = [{"id": row["id"], "name": row["name"]} for row in cursor.fetchall()]
-        conn.close()
-        return lesson_types
+        lesson_types = db.query(models.LessonType).order_by(models.LessonType.name).all()
+        return [{"id": lt.id, "name": lt.name} for lt in lesson_types]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения типов занятий: {str(e)}")
 
 @app.get("/disciplines/officers")
-def get_officers_list():
+def get_officers_list(db: Session = Depends(get_db)):
     """Получить всех преподавателей"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, first_name, second_name, surname FROM officers ORDER BY surname, first_name")
-        officers = [{"id": row["id"], "first_name": row["first_name"], "second_name": row["second_name"], "surname": row["surname"]} for row in cursor.fetchall()]
-        conn.close()
-        return officers
+        officers = db.query(models.Officer).order_by(models.Officer.surname, models.Officer.first_name).all()
+        return [
+            {
+                "id": officer.id,
+                "first_name": officer.first_name,
+                "second_name": officer.second_name,
+                "surname": officer.surname
+            }
+            for officer in officers
+        ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения преподавателей: {str(e)}")
 
 @app.get("/disciplines/audiences")
-def get_audiences_list():
+def get_audiences_list(db: Session = Depends(get_db)):
     """Получить все аудитории"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT number FROM audiences ORDER BY number")
-        audiences = [{"id": row["number"], "number": row["number"]} for row in cursor.fetchall()]
-        conn.close()
-        return audiences
+        audiences = db.query(models.Audience).order_by(models.Audience.number).all()
+        return [{"id": aud.number, "number": aud.number} for aud in audiences]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения аудиторий: {str(e)}")
 
 # Работа с привязанными взводами
 @app.get("/disciplines/available-squads")
-def get_available_squads(subject_load_id: int = Query(...)):
+def get_available_squads(
+    subject_load_id: int = Query(...),
+    db: Session = Depends(get_db)
+):
     """Получить доступные для привязки взводы"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Получаем тип взвода из нагрузки
-        cursor.execute("""
-            SELECT st.id as squad_type_id
-            FROM subject_loads sl
-            JOIN squad_types st ON sl.squad_type_id = st.id
-            WHERE sl.id = ?
-        """, (subject_load_id,))
+        subject_load = db.query(models.SubjectLoad).filter(
+            models.SubjectLoad.id == subject_load_id
+        ).first()
         
-        load = cursor.fetchone()
-        if not load:
+        if not subject_load:
             raise HTTPException(status_code=404, detail="Нагрузка не найдена")
         
         # Получаем взводы с таким же типом, которые еще не привязаны к этой нагрузке
-        cursor.execute("""
-            SELECT 
-                sq.number,
-                d.name as department_name
-            FROM squads sq
-            JOIN departments d ON sq.department_id = d.id
-            WHERE sq.squad_type_id = ?
-            AND sq.number NOT IN (
-                SELECT squad FROM squad_subject_loads WHERE subject_load_id = ?
+        squads = db.query(
+            models.Squad.number,
+            models.Department.name.label("department_name")
+        ).join(
+            models.Department,
+            models.Squad.department_id == models.Department.id
+        ).filter(
+            models.Squad.squad_type_id == subject_load.squad_type_id
+        ).filter(
+            ~models.Squad.number.in_(
+                db.query(models.SquadSubjectLoad.squad)
+                .filter(models.SquadSubjectLoad.subject_load_id == subject_load_id)
+                .subquery()
             )
-            ORDER BY sq.number
-        """, (load["squad_type_id"], subject_load_id))
+        ).order_by(
+            models.Squad.number
+        ).all()
         
-        squads = [{"number": row["number"], "department_name": row["department_name"]} for row in cursor.fetchall()]
-        conn.close()
-        
-        return squads
+        return [{"number": row.number, "department_name": row.department_name} for row in squads]
         
     except HTTPException:
         raise
@@ -1976,7 +1043,7 @@ def get_available_squads(subject_load_id: int = Query(...)):
         raise HTTPException(status_code=500, detail=f"Ошибка получения доступных взводов: {str(e)}")
 
 @app.post("/disciplines/subject-loads/{subject_load_id}/squads")
-def add_squad_to_subject_load(subject_load_id: int, data: dict):
+def add_squad_to_subject_load(subject_load_id: int, data: dict, db: Session = Depends(get_db)):
     """Привязать взвод к нагрузке"""
     try:
         print(f"🔗 Привязка взвода к нагрузке {subject_load_id}: {data}")
@@ -1991,40 +1058,42 @@ def add_squad_to_subject_load(subject_load_id: int, data: dict):
             raise HTTPException(status_code=400, detail="Не указаны преподаватели")
         
         # Проверка существования нагрузки
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT id FROM subject_loads WHERE id = ?", (subject_load_id,))
-        if not cursor.fetchone():
+        subject_load = db.query(models.SubjectLoad).filter(
+            models.SubjectLoad.id == subject_load_id
+        ).first()
+        if not subject_load:
             raise HTTPException(status_code=404, detail="Нагрузка не найдена")
         
         # Проверка существования взвода
-        cursor.execute("SELECT number FROM squads WHERE number = ?", (squad,))
-        if not cursor.fetchone():
+        squad_obj = db.query(models.Squad).filter(models.Squad.number == squad).first()
+        if not squad_obj:
             raise HTTPException(status_code=404, detail="Взвод не найден")
         
         # Проверка, не привязан ли уже этот взвод
-        cursor.execute("SELECT squad FROM squad_subject_loads WHERE subject_load_id = ? AND squad = ?", (subject_load_id, squad))
-        if cursor.fetchone():
+        existing = db.query(models.SquadSubjectLoad).filter(
+            models.SquadSubjectLoad.subject_load_id == subject_load_id,
+            models.SquadSubjectLoad.squad == squad
+        ).first()
+        if existing:
             raise HTTPException(status_code=400, detail="Взвод уже привязан к этой нагрузке")
         
         # Проверка преподавателей
         for officer_id in officers:
-            cursor.execute("SELECT id FROM officers WHERE id = ?", (officer_id,))
-            if not cursor.fetchone():
+            officer = db.query(models.Officer).filter(models.Officer.id == officer_id).first()
+            if not officer:
                 raise HTTPException(status_code=400, detail=f"Преподаватель с ID={officer_id} не найден")
         
         # Формируем строку преподавателей
         officers_str = "/".join(str(officer_id) for officer_id in officers)
         
         # Добавляем привязку
-        cursor.execute("""
-            INSERT INTO squad_subject_loads (subject_load_id, squad, officers)
-            VALUES (?, ?, ?)
-        """, (subject_load_id, squad, officers_str))
-        
-        conn.commit()
-        conn.close()
+        squad_subject_load = models.SquadSubjectLoad(
+            subject_load_id=subject_load_id,
+            squad=squad,
+            officers=officers_str
+        )
+        db.add(squad_subject_load)
+        db.commit()
         
         return {"success": True, "message": "Взвод привязан к нагрузке"}
         
@@ -2034,7 +1103,12 @@ def add_squad_to_subject_load(subject_load_id: int, data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка привязки взвода: {str(e)}")
 
 @app.put("/disciplines/subject-loads/{subject_load_id}/squads/{squad_number}")
-def update_squad_subject_load(subject_load_id: int, squad_number: str, data: dict):
+def update_squad_subject_load(
+    subject_load_id: int,
+    squad_number: str,
+    data: dict,
+    db: Session = Depends(get_db)
+):
     """Обновить привязку взвода к нагрузке"""
     try:
         print(f"🔄 Обновление привязки взвода {squad_number} к нагрузке {subject_load_id}")
@@ -2044,36 +1118,27 @@ def update_squad_subject_load(subject_load_id: int, squad_number: str, data: dic
         if not officers:
             raise HTTPException(status_code=400, detail="Не указаны преподаватели")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования привязки
-        cursor.execute("""
-            SELECT squad FROM squad_subject_loads 
-            WHERE subject_load_id = ? AND squad = ?
-        """, (subject_load_id, squad_number))
+        squad_load = db.query(models.SquadSubjectLoad).filter(
+            models.SquadSubjectLoad.subject_load_id == subject_load_id,
+            models.SquadSubjectLoad.squad == squad_number
+        ).first()
         
-        if not cursor.fetchone():
+        if not squad_load:
             raise HTTPException(status_code=404, detail="Привязка не найдена")
         
         # Проверка преподавателей
         for officer_id in officers:
-            cursor.execute("SELECT id FROM officers WHERE id = ?", (officer_id,))
-            if not cursor.fetchone():
+            officer = db.query(models.Officer).filter(models.Officer.id == officer_id).first()
+            if not officer:
                 raise HTTPException(status_code=400, detail=f"Преподаватель с ID={officer_id} не найден")
         
         # Формируем строку преподавателей
         officers_str = "/".join(str(officer_id) for officer_id in officers)
         
         # Обновляем привязку
-        cursor.execute("""
-            UPDATE squad_subject_loads 
-            SET officers = ?
-            WHERE subject_load_id = ? AND squad = ?
-        """, (officers_str, subject_load_id, squad_number))
-        
-        conn.commit()
-        conn.close()
+        squad_load.officers = officers_str
+        db.commit()
         
         return {"success": True, "message": "Привязка обновлена"}
         
@@ -2083,37 +1148,34 @@ def update_squad_subject_load(subject_load_id: int, squad_number: str, data: dic
         raise HTTPException(status_code=500, detail=f"Ошибка обновления привязки: {str(e)}")
 
 @app.delete("/disciplines/subject-loads/{subject_load_id}/squads/{squad_number}")
-def delete_squad_subject_load(subject_load_id: int, squad_number: str):
+def delete_squad_subject_load(
+    subject_load_id: int,
+    squad_number: str,
+    db: Session = Depends(get_db)
+):
     """Отвязать взвод от нагрузки"""
     try:
         print(f"🔓 Отвязка взвода {squad_number} от нагрузки {subject_load_id}")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования привязки
-        cursor.execute("""
-            SELECT squad FROM squad_subject_loads 
-            WHERE subject_load_id = ? AND squad = ?
-        """, (subject_load_id, squad_number))
+        squad_load = db.query(models.SquadSubjectLoad).filter(
+            models.SquadSubjectLoad.subject_load_id == subject_load_id,
+            models.SquadSubjectLoad.squad == squad_number
+        ).first()
         
-        if not cursor.fetchone():
+        if not squad_load:
             raise HTTPException(status_code=404, detail="Привязка не найдена")
         
         # Удаляем привязку
-        cursor.execute("""
-            DELETE FROM squad_subject_loads 
-            WHERE subject_load_id = ? AND squad = ?
-        """, (subject_load_id, squad_number))
+        db.delete(squad_load)
         
         # Удаляем уроки, связанные с этой привязкой
-        cursor.execute("""
-            DELETE FROM lessons 
-            WHERE subject_load_id = ? AND squad = ?
-        """, (subject_load_id, squad_number))
+        db.query(models.Lesson).filter(
+            models.Lesson.subject_load_id == subject_load_id,
+            models.Lesson.squad == squad_number
+        ).delete()
         
-        conn.commit()
-        conn.close()
+        db.commit()
         
         return {"success": True, "message": "Взвод отвязан от нагрузки"}
         
@@ -2124,7 +1186,7 @@ def delete_squad_subject_load(subject_load_id: int, squad_number: str):
 
 # Работа с часами нагрузки
 @app.post("/disciplines/subject-loads/{subject_load_id}/hours")
-def add_hours_load(subject_load_id: int, data: dict):
+def add_hours_load(subject_load_id: int, data: dict, db: Session = Depends(get_db)):
     """Добавить часы нагрузки для типа занятия"""
     try:
         print(f"➕ Добавление часов для нагрузки {subject_load_id}: {data}")
@@ -2136,36 +1198,38 @@ def add_hours_load(subject_load_id: int, data: dict):
         if not lesson_type_id or not hours_count:
             raise HTTPException(status_code=400, detail="Не указаны обязательные поля")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования нагрузки
-        cursor.execute("SELECT id FROM subject_loads WHERE id = ?", (subject_load_id,))
-        if not cursor.fetchone():
+        subject_load = db.query(models.SubjectLoad).filter(
+            models.SubjectLoad.id == subject_load_id
+        ).first()
+        if not subject_load:
             raise HTTPException(status_code=404, detail="Нагрузка не найдена")
         
         # Проверка существования типа занятия
-        cursor.execute("SELECT id FROM lesson_types WHERE id = ?", (lesson_type_id,))
-        if not cursor.fetchone():
+        lesson_type = db.query(models.LessonType).filter(
+            models.LessonType.id == lesson_type_id
+        ).first()
+        if not lesson_type:
             raise HTTPException(status_code=400, detail="Тип занятия не найден")
         
         # Проверка, не добавлены ли уже часы для этого типа
-        cursor.execute("""
-            SELECT lesson_type_id FROM subject_hours_load_count 
-            WHERE subject_load_id = ? AND lesson_type_id = ?
-        """, (subject_load_id, lesson_type_id))
+        existing = db.query(models.SubjectHoursLoadCount).filter(
+            models.SubjectHoursLoadCount.subject_load_id == subject_load_id,
+            models.SubjectHoursLoadCount.lesson_type_id == lesson_type_id
+        ).first()
         
-        if cursor.fetchone():
+        if existing:
             raise HTTPException(status_code=400, detail="Часы для этого типа занятия уже добавлены")
         
         # Добавляем часы
-        cursor.execute("""
-            INSERT INTO subject_hours_load_count (subject_load_id, lesson_type_id, hours_count, audiences)
-            VALUES (?, ?, ?, ?)
-        """, (subject_load_id, lesson_type_id, hours_count, audiences))
-        
-        conn.commit()
-        conn.close()
+        hour_load = models.SubjectHoursLoadCount(
+            subject_load_id=subject_load_id,
+            lesson_type_id=lesson_type_id,
+            hours_count=hours_count,
+            audiences=audiences
+        )
+        db.add(hour_load)
+        db.commit()
         
         return {"success": True, "message": "Часы добавлены"}
         
@@ -2175,7 +1239,12 @@ def add_hours_load(subject_load_id: int, data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка добавления часов: {str(e)}")
 
 @app.put("/disciplines/subject-loads/{subject_load_id}/hours/{lesson_type_id}")
-def update_hours_load(subject_load_id: int, lesson_type_id: int, data: dict):
+def update_hours_load(
+    subject_load_id: int,
+    lesson_type_id: int,
+    data: dict,
+    db: Session = Depends(get_db)
+):
     """Обновить часы нагрузки для типа занятия"""
     try:
         print(f"🔄 Обновление часов для нагрузки {subject_load_id}, тип {lesson_type_id}: {data}")
@@ -2186,27 +1255,19 @@ def update_hours_load(subject_load_id: int, lesson_type_id: int, data: dict):
         if not hours_count:
             raise HTTPException(status_code=400, detail="Не указано количество часов")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования записи
-        cursor.execute("""
-            SELECT subject_load_id FROM subject_hours_load_count 
-            WHERE subject_load_id = ? AND lesson_type_id = ?
-        """, (subject_load_id, lesson_type_id))
+        hour_load = db.query(models.SubjectHoursLoadCount).filter(
+            models.SubjectHoursLoadCount.subject_load_id == subject_load_id,
+            models.SubjectHoursLoadCount.lesson_type_id == lesson_type_id
+        ).first()
         
-        if not cursor.fetchone():
+        if not hour_load:
             raise HTTPException(status_code=404, detail="Запись о часах не найдена")
         
         # Обновляем запись
-        cursor.execute("""
-            UPDATE subject_hours_load_count 
-            SET hours_count = ?, audiences = ?
-            WHERE subject_load_id = ? AND lesson_type_id = ?
-        """, (hours_count, audiences, subject_load_id, lesson_type_id))
-        
-        conn.commit()
-        conn.close()
+        hour_load.hours_count = hours_count
+        hour_load.audiences = audiences
+        db.commit()
         
         return {"success": True, "message": "Часы обновлены"}
         
@@ -2216,31 +1277,27 @@ def update_hours_load(subject_load_id: int, lesson_type_id: int, data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка обновления часов: {str(e)}")
 
 @app.delete("/disciplines/subject-loads/{subject_load_id}/hours/{lesson_type_id}")
-def delete_hours_load(subject_load_id: int, lesson_type_id: int):
+def delete_hours_load(
+    subject_load_id: int,
+    lesson_type_id: int,
+    db: Session = Depends(get_db)
+):
     """Удалить часы нагрузки для типа занятия"""
     try:
         print(f"🗑️ Удаление часов для нагрузки {subject_load_id}, тип {lesson_type_id}")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования записи
-        cursor.execute("""
-            SELECT subject_load_id FROM subject_hours_load_count 
-            WHERE subject_load_id = ? AND lesson_type_id = ?
-        """, (subject_load_id, lesson_type_id))
+        hour_load = db.query(models.SubjectHoursLoadCount).filter(
+            models.SubjectHoursLoadCount.subject_load_id == subject_load_id,
+            models.SubjectHoursLoadCount.lesson_type_id == lesson_type_id
+        ).first()
         
-        if not cursor.fetchone():
+        if not hour_load:
             raise HTTPException(status_code=404, detail="Запись о часах не найдена")
         
         # Удаляем запись
-        cursor.execute("""
-            DELETE FROM subject_hours_load_count 
-            WHERE subject_load_id = ? AND lesson_type_id = ?
-        """, (subject_load_id, lesson_type_id))
-        
-        conn.commit()
-        conn.close()
+        db.delete(hour_load)
+        db.commit()
         
         return {"success": True, "message": "Часы удалены"}
         
@@ -2251,7 +1308,7 @@ def delete_hours_load(subject_load_id: int, lesson_type_id: int):
 
 # Работа с темами
 @app.post("/disciplines/subject-loads/{subject_load_id}/themes")
-def add_theme(subject_load_id: int, data: dict):
+def add_theme(subject_load_id: int, data: dict, db: Session = Depends(get_db)):
     """Добавить тему для нагрузки"""
     try:
         print(f"➕ Добавление темы для нагрузки {subject_load_id}: {data}")
@@ -2266,39 +1323,45 @@ def add_theme(subject_load_id: int, data: dict):
         if not all([lesson_type_id, topic, subtopic, hours_count]):
             raise HTTPException(status_code=400, detail="Не указаны обязательные поля")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования нагрузки
-        cursor.execute("SELECT id FROM subject_loads WHERE id = ?", (subject_load_id,))
-        if not cursor.fetchone():
+        subject_load = db.query(models.SubjectLoad).filter(
+            models.SubjectLoad.id == subject_load_id
+        ).first()
+        if not subject_load:
             raise HTTPException(status_code=404, detail="Нагрузка не найдена")
         
         # Проверка существования типа занятия
-        cursor.execute("SELECT id FROM lesson_types WHERE id = ?", (lesson_type_id,))
-        if not cursor.fetchone():
+        lesson_type = db.query(models.LessonType).filter(
+            models.LessonType.id == lesson_type_id
+        ).first()
+        if not lesson_type:
             raise HTTPException(status_code=400, detail="Тип занятия не найден")
         
         # Проверка уникальности темы
-        cursor.execute("""
-            SELECT id FROM themes 
-            WHERE subject_load_id = ? AND topic = ? AND subtopic = ?
-        """, (subject_load_id, topic, subtopic))
+        existing = db.query(models.Theme).filter(
+            models.Theme.subject_load_id == subject_load_id,
+            models.Theme.topic == topic,
+            models.Theme.subtopic == subtopic
+        ).first()
         
-        if cursor.fetchone():
+        if existing:
             raise HTTPException(status_code=400, detail="Тема с таким номером уже существует")
         
         # Добавляем тему
-        cursor.execute("""
-            INSERT INTO themes (subject_load_id, lesson_type_id, topic, subtopic, hours_count, topic_name, subtopic_name)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (subject_load_id, lesson_type_id, topic, subtopic, hours_count, topic_name, subtopic_name))
+        theme = models.Theme(
+            subject_load_id=subject_load_id,
+            lesson_type_id=lesson_type_id,
+            topic=topic,
+            subtopic=subtopic,
+            hours_count=hours_count,
+            topic_name=topic_name,
+            subtopic_name=subtopic_name
+        )
+        db.add(theme)
+        db.commit()
+        db.refresh(theme)
         
-        theme_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        
-        return {"success": True, "message": "Тема добавлена", "id": theme_id}
+        return {"success": True, "message": "Тема добавлена", "id": theme.id}
         
     except HTTPException:
         raise
@@ -2306,75 +1369,55 @@ def add_theme(subject_load_id: int, data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка добавления темы: {str(e)}")
 
 @app.put("/disciplines/themes/{theme_id}")
-def update_theme(theme_id: int, data: dict):
+def update_theme(theme_id: int, data: dict, db: Session = Depends(get_db)):
     """Обновить тему"""
     try:
         print(f"🔄 Обновление темы ID={theme_id}: {data}")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования темы
-        cursor.execute("SELECT id FROM themes WHERE id = ?", (theme_id,))
-        if not cursor.fetchone():
+        theme = db.query(models.Theme).filter(models.Theme.id == theme_id).first()
+        if not theme:
             raise HTTPException(status_code=404, detail="Тема не найдена")
         
-        updates = []
-        params = []
-        
+        # Обновление полей
         if "lesson_type_id" in data:
-            cursor.execute("SELECT id FROM lesson_types WHERE id = ?", (data["lesson_type_id"],))
-            if cursor.fetchone():
-                updates.append("lesson_type_id = ?")
-                params.append(data["lesson_type_id"])
-            else:
+            lesson_type = db.query(models.LessonType).filter(
+                models.LessonType.id == data["lesson_type_id"]
+            ).first()
+            if not lesson_type:
                 raise HTTPException(status_code=400, detail="Тип занятия не найден")
+            theme.lesson_type_id = data["lesson_type_id"]
         
         if "topic" in data:
-            updates.append("topic = ?")
-            params.append(data["topic"])
+            theme.topic = data["topic"]
         
         if "subtopic" in data:
-            updates.append("subtopic = ?")
-            params.append(data["subtopic"])
+            theme.subtopic = data["subtopic"]
         
         if "hours_count" in data:
-            updates.append("hours_count = ?")
-            params.append(data["hours_count"])
+            theme.hours_count = data["hours_count"]
         
         if "topic_name" in data:
-            updates.append("topic_name = ?")
-            params.append(data["topic_name"])
+            theme.topic_name = data["topic_name"]
         
         if "subtopic_name" in data:
-            updates.append("subtopic_name = ?")
-            params.append(data["subtopic_name"])
+            theme.subtopic_name = data["subtopic_name"]
         
-        if updates:
-            # Проверка уникальности при изменении номера темы
-            if "topic" in data or "subtopic" in data:
-                cursor.execute("SELECT subject_load_id FROM themes WHERE id = ?", (theme_id,))
-                subject_load_id = cursor.fetchone()["subject_load_id"]
-                
-                cursor.execute("""
-                    SELECT id FROM themes 
-                    WHERE subject_load_id = ? AND topic = ? AND subtopic = ? AND id != ?
-                """, (
-                    subject_load_id,
-                    data.get("topic") or (cursor.execute("SELECT topic FROM themes WHERE id = ?", (theme_id,))).fetchone()[0],
-                    data.get("subtopic") or (cursor.execute("SELECT subtopic FROM themes WHERE id = ?", (theme_id,))).fetchone()[0],
-                    theme_id
-                ))
-                
-                if cursor.fetchone():
-                    raise HTTPException(status_code=400, detail="Тема с таким номером уже существует")
+        # Проверка уникальности при изменении номера темы
+        if "topic" in data or "subtopic" in data:
+            existing = db.query(models.Theme).filter(
+                models.Theme.subject_load_id == theme.subject_load_id,
+                models.Theme.topic == theme.topic,
+                models.Theme.subtopic == theme.subtopic,
+                models.Theme.id != theme_id
+            ).first()
             
-            params.append(theme_id)
-            query = f"UPDATE themes SET {', '.join(updates)} WHERE id = ?"
-            cursor.execute(query, params)
-            conn.commit()
+            if existing:
+                raise HTTPException(status_code=400, detail="Тема с таким номером уже существует")
         
-        conn.close()
+        db.commit()
+        db.refresh(theme)
+        
         return {"success": True, "message": "Тема обновлена"}
         
     except HTTPException:
@@ -2383,27 +1426,23 @@ def update_theme(theme_id: int, data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка обновления темы: {str(e)}")
 
 @app.delete("/disciplines/themes/{theme_id}")
-def delete_theme(theme_id: int):
+def delete_theme(theme_id: int, db: Session = Depends(get_db)):
     """Удалить тему"""
     try:
         print(f"🗑️ Удаление темы ID={theme_id}")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования темы
-        cursor.execute("SELECT id FROM themes WHERE id = ?", (theme_id,))
-        if not cursor.fetchone():
+        theme = db.query(models.Theme).filter(models.Theme.id == theme_id).first()
+        if not theme:
             raise HTTPException(status_code=404, detail="Тема не найдена")
         
         # Удаляем тему
-        cursor.execute("DELETE FROM themes WHERE id = ?", (theme_id,))
+        db.delete(theme)
         
         # Удаляем уроки, связанные с этой темой
-        cursor.execute("DELETE FROM lessons WHERE theme_id = ?", (theme_id,))
+        db.query(models.Lesson).filter(models.Lesson.theme_id == theme_id).delete()
         
-        conn.commit()
-        conn.close()
+        db.commit()
         
         return {"success": True, "message": "Тема удалена"}
         
@@ -2412,134 +1451,54 @@ def delete_theme(theme_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка удаления темы: {str(e)}")
 
-
-# ------------------------ AUDIENCES ------------------------
-
-# ============================================================================
-# АУДИТОРИИ
-# ============================================================================
-
+# ------------------------ AUDIENCE ------------------------
 @app.get("/audience/audiences")
-def get_audiences():
-    """
-    Получить все аудитории
-    """
+def get_audiences_api(db: Session = Depends(get_db)):
+    """Получить все аудитории"""
     try:
         print("🔄 Получение всех аудиторий")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        # Получаем все аудитории
+        audiences = db.query(models.Audience).order_by(models.Audience.number).all()
         
-        cursor.execute("""
-            SELECT 
-                a.number,
-                COUNT(DISTINCT shlc.subject_load_id) as load_count,
-                COUNT(DISTINCT l.id) as lessons_count,
-                MAX(l.date) as last_lesson_date
-            FROM audiences a
-            LEFT JOIN subject_hours_load_count shlc ON shlc.audiences LIKE '%' || a.number || '%'
-            LEFT JOIN lessons l ON l.audience = a.number
-            GROUP BY a.number
-            ORDER BY a.number
-        """)
+        result = []
+        for audience in audiences:
+            # Для каждой аудитории считаем статистику
+            load_count = db.query(func.count(func.distinct(models.SubjectHoursLoadCount.subject_load_id))).filter(
+                models.SubjectHoursLoadCount.audiences.like(f'%{audience.number}%')
+            ).scalar()
+            
+            lessons_count = db.query(func.count(models.Lesson.id)).filter(
+                models.Lesson.audience == audience.number
+            ).scalar()
+            
+            last_lesson = db.query(models.Lesson).filter(
+                models.Lesson.audience == audience.number
+            ).order_by(models.Lesson.date.desc()).first()
+            
+            result.append({
+                "number": audience.number,
+                "load_count": load_count or 0,
+                "lessons_count": lessons_count or 0,
+                "last_lesson_date": last_lesson.date if last_lesson else None
+            })
         
-        audiences = cursor.fetchall()
-        conn.close()
-        
-        result = [dict(row) for row in audiences]
         print(f"✅ Найдено аудиторий: {len(result)}")
         return result
         
     except Exception as e:
         print(f"❌ Ошибка получения аудиторий: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения аудиторий: {str(e)}")
-
+    
 @app.get("/audience/audiences/{audience_number}")
-def get_audience_details(audience_number: int):
-    """
-    Получить детальную информацию об аудитории
-    """
+def get_audience_details_api(audience_number: int, db: Session = Depends(get_db)):
+    """Получить детальную информацию об аудитории"""
     try:
         print(f"🔄 Получение деталей аудитории №{audience_number}")
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Проверка существования аудитории
-        cursor.execute("SELECT number FROM audiences WHERE number = ?", (audience_number,))
-        if not cursor.fetchone():
+        details = crud.get_audience_details(db, audience_number)
+        if not details:
             raise HTTPException(status_code=404, detail="Аудитория не найдена")
-        
-        # Основная статистика
-        cursor.execute("""
-            SELECT 
-                a.number as audience_number,
-                COUNT(DISTINCT shlc.subject_load_id) as load_count,
-                COUNT(DISTINCT l.id) as lessons_count,
-                MAX(l.date) as last_lesson_date
-            FROM audiences a
-            LEFT JOIN subject_hours_load_count shlc ON shlc.audiences LIKE '%' || a.number || '%'
-            LEFT JOIN lessons l ON l.audience = a.number
-            WHERE a.number = ?
-            GROUP BY a.number
-        """, (audience_number,))
-        
-        stats = cursor.fetchone()
-        if not stats:
-            stats = {"audience_number": audience_number, "load_count": 0, "lessons_count": 0, "last_lesson_date": None}
-        
-        # Нагрузки, связанные с этой аудиторией
-        cursor.execute("""
-            SELECT DISTINCT
-                shlc.subject_load_id,
-                shlc.lesson_type_id,
-                shlc.hours_count,
-                shlc.audiences,
-                s.name as subject_name,
-                d.name as department_name,
-                st.type,
-                st.course,
-                sl.semester,
-                lt.name as lesson_type_name
-            FROM subject_hours_load_count shlc
-            JOIN subject_loads sl ON shlc.subject_load_id = sl.id
-            JOIN subjects s ON sl.subject_id = s.id
-            JOIN departments d ON sl.department_id = d.id
-            JOIN squad_types st ON sl.squad_type_id = st.id
-            JOIN lesson_types lt ON shlc.lesson_type_id = lt.id
-            WHERE shlc.audiences LIKE '%' || ? || '%'
-            ORDER BY s.name, lt.name
-        """, (str(audience_number),))
-        
-        hour_loads = []
-        for row in cursor.fetchall():
-            audiences = []
-            if row["audiences"]:
-                audiences = [a.strip() for a in row["audiences"].split("/") if a.strip()]
-            
-            hour_loads.append({
-                "subject_load_id": row["subject_load_id"],
-                "lesson_type_id": row["lesson_type_id"],
-                "hours_count": row["hours_count"],
-                "audiences": audiences,
-                "subject_name": row["subject_name"],
-                "department_name": row["department_name"],
-                "type": row["type"],
-                "course": row["course"],
-                "semester": row["semester"],
-                "lesson_type_name": row["lesson_type_name"]
-            })
-        
-        conn.close()
-        
-        result = {
-            **dict(stats),
-            "hour_loads": hour_loads
-        }
-        
-        print(f"✅ Данные аудитории загружены")
-        return result
-        
+        return details
     except HTTPException:
         raise
     except Exception as e:
@@ -2547,10 +1506,8 @@ def get_audience_details(audience_number: int):
         raise HTTPException(status_code=500, detail=f"Ошибка получения деталей аудитории: {str(e)}")
 
 @app.post("/audience/audiences")
-def add_audience(data: dict):
-    """
-    Добавить новую аудиторию
-    """
+def add_audience_api(data: dict, db: Session = Depends(get_db)):
+    """Добавить новую аудиторию"""
     try:
         print(f"➕ Добавление новой аудитории: {data}")
         
@@ -2559,19 +1516,17 @@ def add_audience(data: dict):
         if not audience_number:
             raise HTTPException(status_code=400, detail="Не указан номер аудитории")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования аудитории
-        cursor.execute("SELECT number FROM audiences WHERE number = ?", (audience_number,))
-        if cursor.fetchone():
+        existing = db.query(models.Audience).filter(
+            models.Audience.number == audience_number
+        ).first()
+        if existing:
             raise HTTPException(status_code=400, detail="Аудитория с таким номером уже существует")
         
         # Добавление аудитории
-        cursor.execute("INSERT INTO audiences (number) VALUES (?)", (audience_number,))
-        
-        conn.commit()
-        conn.close()
+        audience = models.Audience(number=audience_number)
+        db.add(audience)
+        db.commit()
         
         print(f"✅ Аудитория №{audience_number} добавлена")
         return {"success": True, "message": f"Аудитория №{audience_number} добавлена"}
@@ -2583,61 +1538,40 @@ def add_audience(data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка добавления аудитории: {str(e)}")
 
 @app.delete("/audience/audiences/{audience_number}")
-def delete_audience(audience_number: int):
-    """
-    Удалить аудиторию
-    """
+def delete_audience_api(audience_number: int, db: Session = Depends(get_db)):
+    """Удалить аудиторию"""
     try:
         print(f"🗑️ Удаление аудитории №{audience_number}")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования аудитории
-        cursor.execute("SELECT number FROM audiences WHERE number = ?", (audience_number,))
-        if not cursor.fetchone():
+        audience = db.query(models.Audience).filter(
+            models.Audience.number == audience_number
+        ).first()
+        if not audience:
             raise HTTPException(status_code=404, detail="Аудитория не найдена")
         
         # Мягкое удаление:
         # 1. Обновляем уроки - очищаем поле audience
-        cursor.execute("""
-            UPDATE lessons 
-            SET audience = NULL 
-            WHERE audience = ?
-        """, (audience_number,))
-        
-        print(f"✅ Очищено поле audience в {cursor.rowcount} уроках")
+        db.query(models.Lesson).filter(
+            models.Lesson.audience == audience_number
+        ).update({"audience": None})
         
         # 2. Удаляем аудиторию из subject_hours_load_count
-        cursor.execute("""
-            SELECT subject_load_id, lesson_type_id, audiences 
-            FROM subject_hours_load_count 
-            WHERE audiences LIKE '%' || ? || '%'
-        """, (str(audience_number),))
+        hour_loads = db.query(models.SubjectHoursLoadCount).filter(
+            models.SubjectHoursLoadCount.audiences.like(f'%{audience_number}%')
+        ).all()
         
-        print("111")
-        hour_loads = cursor.fetchall()
-        for row in hour_loads:
-            audiences = row["audiences"]
-            if audiences:
+        for hour_load in hour_loads:
+            if hour_load.audiences:
                 # Удаляем аудиторию из строки
-                audience_list = [a.strip() for a in audiences.split("/") if a.strip()]
+                audience_list = [a.strip() for a in hour_load.audiences.split("/") if a.strip()]
                 audience_list = [a for a in audience_list if a != str(audience_number)]
                 new_audiences = "/".join(audience_list)
-                
-                cursor.execute("""
-                    UPDATE subject_hours_load_count 
-                    SET audiences = ? 
-                    WHERE subject_load_id = ? AND lesson_type_id = ?
-                """, (new_audiences, row["subject_load_id"], row["lesson_type_id"]))
-        
-        print(f"✅ Аудитория удалена из {len(hour_loads)} наборов часов нагрузки")
+                hour_load.audiences = new_audiences
         
         # 3. Удаляем саму аудиторию
-        cursor.execute("DELETE FROM audiences WHERE number = ?", (audience_number,))
-        
-        conn.commit()
-        conn.close()
+        db.delete(audience)
+        db.commit()
         
         return {"success": True, "message": f"Аудитория №{audience_number} удалена"}
         
@@ -2648,62 +1582,65 @@ def delete_audience(audience_number: int):
         raise HTTPException(status_code=500, detail=f"Ошибка удаления аудитории: {str(e)}")
 
 @app.get("/audience/audiences/{audience_number}/available-hour-loads")
-def get_available_hour_loads(audience_number: int):
-    """
-    Получить доступные для добавления аудитории нагрузки часов
-    """
+def get_available_hour_loads_api(audience_number: int, db: Session = Depends(get_db)):
+    """Получить доступные для добавления аудитории нагрузки часов"""
     try:
         print(f"📊 Получение доступных нагрузок для аудитории №{audience_number}")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Нагрузки, где аудитории еще нет
-        cursor.execute("""
-            SELECT 
-                shlc.subject_load_id,
-                shlc.lesson_type_id,
-                shlc.hours_count,
-                shlc.audiences,
-                s.name as subject_name,
-                lt.name as lesson_type_name
-            FROM subject_hours_load_count shlc
-            JOIN subject_loads sl ON shlc.subject_load_id = sl.id
-            JOIN subjects s ON sl.subject_id = s.id
-            JOIN lesson_types lt ON shlc.lesson_type_id = lt.id
-            WHERE shlc.audiences NOT LIKE '%' || ? || '%'
-            ORDER BY s.name, lt.name
-        """, (str(audience_number),))
+        hour_loads = db.query(
+            models.SubjectHoursLoadCount.subject_load_id,
+            models.SubjectHoursLoadCount.lesson_type_id,
+            models.SubjectHoursLoadCount.hours_count,
+            models.SubjectHoursLoadCount.audiences,
+            models.Subject.name.label("subject_name"),
+            models.LessonType.name.label("lesson_type_name")
+        ).join(
+            models.SubjectLoad,
+            models.SubjectHoursLoadCount.subject_load_id == models.SubjectLoad.id
+        ).join(
+            models.Subject,
+            models.SubjectLoad.subject_id == models.Subject.id
+        ).join(
+            models.LessonType,
+            models.SubjectHoursLoadCount.lesson_type_id == models.LessonType.id
+        ).filter(
+            ~models.SubjectHoursLoadCount.audiences.like(f'%{audience_number}%')
+        ).order_by(
+            models.Subject.name,
+            models.LessonType.name
+        ).all()
         
-        hour_loads = []
-        for row in cursor.fetchall():
+        result = []
+        for row in hour_loads:
             audiences = []
-            if row["audiences"]:
-                audiences = [a.strip() for a in row["audiences"].split("/") if a.strip()]
+            if row.audiences:
+                audiences = [a.strip() for a in row.audiences.split("/") if a.strip()]
             
-            hour_loads.append({
-                "subject_load_id": row["subject_load_id"],
-                "lesson_type_id": row["lesson_type_id"],
-                "hours_count": row["hours_count"],
+            result.append({
+                "subject_load_id": row.subject_load_id,
+                "lesson_type_id": row.lesson_type_id,
+                "hours_count": row.hours_count,
                 "audiences": audiences,
-                "subject_name": row["subject_name"],
-                "lesson_type_name": row["lesson_type_name"]
+                "subject_name": row.subject_name,
+                "lesson_type_name": row.lesson_type_name
             })
         
-        conn.close()
-        
-        print(f"✅ Найдено доступных нагрузок: {len(hour_loads)}")
-        return hour_loads
+        print(f"✅ Найдено доступных нагрузок: {len(result)}")
+        return result
         
     except Exception as e:
         print(f"❌ Ошибка получения доступных нагрузок: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения доступных нагрузок: {str(e)}")
 
 @app.put("/audience/subject-loads/{subject_load_id}/lesson-types/{lesson_type_id}/audiences")
-def update_hour_load_audiences(subject_load_id: int, lesson_type_id: int, data: dict):
-    """
-    Обновить список аудиторий для нагрузки часов
-    """
+def update_hour_load_audiences_api(
+    subject_load_id: int,
+    lesson_type_id: int,
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    """Обновить список аудиторий для нагрузки часов"""
     try:
         audiences = data.get("audiences", [])
         
@@ -2712,31 +1649,27 @@ def update_hour_load_audiences(subject_load_id: int, lesson_type_id: int, data: 
             raise HTTPException(status_code=400, detail="Максимум 3 аудитории на нагрузку")
         
         # Валидация: все аудитории должны существовать
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         for audience in audiences:
-            cursor.execute("SELECT number FROM audiences WHERE number = ?", (audience,))
-            if not cursor.fetchone():
+            aud_obj = db.query(models.Audience).filter(
+                models.Audience.number == audience
+            ).first()
+            if not aud_obj:
                 raise HTTPException(status_code=400, detail=f"Аудитория №{audience} не найдена")
         
         # Формируем строку аудиторий
         audiences_str = "/".join(str(audience) for audience in audiences)
         
         # Проверка существования нагрузки часов
-        cursor.execute("SELECT subject_load_id FROM subject_hours_load_count WHERE subject_load_id = ? AND lesson_type_id = ?", (subject_load_id, lesson_type_id))
-        if not cursor.fetchone():
+        hour_load = db.query(models.SubjectHoursLoadCount).filter(
+            models.SubjectHoursLoadCount.subject_load_id == subject_load_id,
+            models.SubjectHoursLoadCount.lesson_type_id == lesson_type_id
+        ).first()
+        if not hour_load:
             raise HTTPException(status_code=404, detail="Нагрузка часов не найдена")
         
         # Обновляем аудитории
-        cursor.execute("""
-            UPDATE subject_hours_load_count 
-            SET audiences = ? 
-            WHERE subject_load_id = ? AND lesson_type_id = ?
-        """, (audiences_str, subject_load_id, lesson_type_id))
-        
-        conn.commit()
-        conn.close()
+        hour_load.audiences = audiences_str
+        db.commit()
         
         return {"success": True, "message": "Аудитории обновлены"}
         
@@ -2746,38 +1679,28 @@ def update_hour_load_audiences(subject_load_id: int, lesson_type_id: int, data: 
         print(f"❌ Ошибка обновления аудиторий: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка обновления аудиторий: {str(e)}")
 
-
-# ------- TEACHERS -------
-# ============================================================================
-# ПРЕПОДАВАТЕЛИ (обновленная версия)
-# ============================================================================
-
-@app.get("/teachers")
-def get_teachers():
-    """
-    Получить всех преподавателей (для списка)
-    """
+# ------------------------ TEACHERS ------------------------
+@app.get("/teachers", response_model=List[schemas.Officer])
+def get_teachers_api(db: Session = Depends(get_db)):
+    """Получить всех преподавателей (для списка)"""
     try:
         print("🔄 Получение списка преподавателей")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        teachers = db.query(models.Officer).order_by(
+            models.Officer.surname,
+            models.Officer.first_name
+        ).all()
         
-        cursor.execute("""
-            SELECT 
-                id,
-                first_name,
-                second_name,
-                surname,
-                first_name || ' ' || second_name || ' ' || surname as full_name
-            FROM officers
-            ORDER BY surname, first_name
-        """)
+        result = []
+        for teacher in teachers:
+            result.append({
+                "id": teacher.id,
+                "first_name": teacher.first_name,
+                "second_name": teacher.second_name,
+                "surname": teacher.surname,
+                "full_name": f"{teacher.surname} {teacher.first_name} {teacher.second_name}"
+            })
         
-        teachers = cursor.fetchall()
-        conn.close()
-        
-        result = [dict(row) for row in teachers]
         print(f"✅ Найдено преподавателей: {len(result)}")
         return result
         
@@ -2786,94 +1709,14 @@ def get_teachers():
         raise HTTPException(status_code=500, detail=f"Ошибка получения преподавателей: {str(e)}")
 
 @app.get("/teachers/{teacher_id}")
-def get_teacher_details(teacher_id: int):
-    """
-    Получить детальную информацию о преподавателе со связками
-    """
+def get_teacher_details_api(teacher_id: int, db: Session = Depends(get_db)):
+    """Получить детальную информацию о преподавателе со связками"""
     try:
         print(f"🔄 Получение деталей преподавателя ID={teacher_id}")
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Основная информация о преподавателе
-        cursor.execute("""
-            SELECT 
-                id,
-                first_name,
-                second_name,
-                surname,
-                first_name || ' ' || second_name || ' ' || surname as full_name
-            FROM officers
-            WHERE id = ?
-        """, (teacher_id,))
-        
-        teacher = cursor.fetchone()
-        if not teacher:
+        details = crud.get_teacher_details(db, teacher_id)
+        if not details:
             raise HTTPException(status_code=404, detail="Преподаватель не найден")
-        
-        # Связки с нагрузками и взводами
-        cursor.execute("""
-            SELECT 
-                ssl.subject_load_id,
-                ssl.squad,
-                ssl.officers,
-                s.name as subject_name,
-                d.name as department_name,
-                st.type,
-                st.course,
-                sl.semester
-            FROM squad_subject_loads ssl
-            JOIN subject_loads sl ON ssl.subject_load_id = sl.id
-            JOIN subjects s ON sl.subject_id = s.id
-            JOIN departments d ON sl.department_id = d.id
-            JOIN squad_types st ON sl.squad_type_id = st.id
-            WHERE ssl.officers LIKE '%' || ? || '%'
-            ORDER BY s.name, ssl.squad
-        """, (str(teacher_id),))
-        
-        connections = []
-        for row in cursor.fetchall():
-            officer_ids = []
-            if row["officers"]:
-                officer_ids = [id.strip() for id in row["officers"].split("/") if id.strip()]
-            
-            # Получаем имена всех преподавателей в этой связке
-            officer_names = []
-            if officer_ids:
-                placeholders = ','.join('?' * len(officer_ids))
-                cursor.execute(f"""
-                    SELECT first_name, second_name, surname
-                    FROM officers
-                    WHERE id IN ({placeholders})
-                    ORDER BY surname, first_name
-                """, officer_ids)
-                
-                for officer in cursor.fetchall():
-                    officer_names.append(f"{officer['surname']} {officer['first_name']} {officer['second_name']}")
-            
-            connections.append({
-                "subject_load_id": row["subject_load_id"],
-                "squad": row["squad"],
-                "officer_ids": officer_ids,
-                "officer_names": officer_names,
-                "subject_name": row["subject_name"],
-                "department_name": row["department_name"],
-                "type": row["type"],
-                "course": row["course"],
-                "semester": row["semester"]
-            })
-        
-        conn.close()
-        
-        result = {
-            **dict(teacher),
-            "connections": connections
-        }
-        
-        print(f"✅ Данные преподавателя загружены, связок: {len(connections)}")
-        return result
-        
+        return details
     except HTTPException:
         raise
     except Exception as e:
@@ -2881,10 +1724,8 @@ def get_teacher_details(teacher_id: int):
         raise HTTPException(status_code=500, detail=f"Ошибка получения деталей преподавателя: {str(e)}")
 
 @app.post("/teachers")
-def add_teacher(data: dict):
-    """
-    Добавить нового преподавателя
-    """
+def add_teacher_api(data: dict, db: Session = Depends(get_db)):
+    """Добавить нового преподавателя"""
     try:
         print(f"➕ Добавление нового преподавателя: {data}")
         
@@ -2896,30 +1737,28 @@ def add_teacher(data: dict):
         if not all([first_name, second_name, surname]):
             raise HTTPException(status_code=400, detail="Все поля (имя, отчество, фамилия) обязательны")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка уникальности
-        cursor.execute("""
-            SELECT id FROM officers 
-            WHERE first_name = ? AND second_name = ? AND surname = ?
-        """, (first_name, second_name, surname))
+        existing = db.query(models.Officer).filter(
+            models.Officer.first_name == first_name,
+            models.Officer.second_name == second_name,
+            models.Officer.surname == surname
+        ).first()
         
-        if cursor.fetchone():
+        if existing:
             raise HTTPException(status_code=400, detail="Преподаватель с таким ФИО уже существует")
         
         # Добавление преподавателя
-        cursor.execute("""
-            INSERT INTO officers (first_name, second_name, surname)
-            VALUES (?, ?, ?)
-        """, (first_name, second_name, surname))
+        officer = models.Officer(
+            first_name=first_name,
+            second_name=second_name,
+            surname=surname
+        )
+        db.add(officer)
+        db.commit()
+        db.refresh(officer)
         
-        teacher_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        
-        print(f"✅ Преподаватель добавлен, ID={teacher_id}")
-        return {"success": True, "message": "Преподаватель добавлен", "id": teacher_id}
+        print(f"✅ Преподаватель добавлен, ID={officer.id}")
+        return {"success": True, "message": "Преподаватель добавлен", "id": officer.id}
         
     except HTTPException:
         raise
@@ -2928,10 +1767,8 @@ def add_teacher(data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка добавления преподавателя: {str(e)}")
 
 @app.put("/teachers/{teacher_id}")
-def update_teacher(teacher_id: int, data: dict):
-    """
-    Обновить данные преподавателя
-    """
+def update_teacher_api(teacher_id: int, data: dict, db: Session = Depends(get_db)):
+    """Обновить данные преподавателя"""
     try:
         print(f"🔄 Обновление преподавателя ID={teacher_id}: {data}")
         
@@ -2943,33 +1780,28 @@ def update_teacher(teacher_id: int, data: dict):
         if not all([first_name, second_name, surname]):
             raise HTTPException(status_code=400, detail="Все поля (имя, отчество, фамилия) обязательны")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования преподавателя
-        cursor.execute("SELECT id FROM officers WHERE id = ?", (teacher_id,))
-        if not cursor.fetchone():
+        officer = db.query(models.Officer).filter(models.Officer.id == teacher_id).first()
+        if not officer:
             raise HTTPException(status_code=404, detail="Преподаватель не найден")
         
         # Проверка уникальности (кроме текущего преподавателя)
-        cursor.execute("""
-            SELECT id FROM officers 
-            WHERE first_name = ? AND second_name = ? AND surname = ?
-            AND id != ?
-        """, (first_name, second_name, surname, teacher_id))
+        existing = db.query(models.Officer).filter(
+            models.Officer.first_name == first_name,
+            models.Officer.second_name == second_name,
+            models.Officer.surname == surname,
+            models.Officer.id != teacher_id
+        ).first()
         
-        if cursor.fetchone():
+        if existing:
             raise HTTPException(status_code=400, detail="Преподаватель с таким ФИО уже существует")
         
         # Обновление данных
-        cursor.execute("""
-            UPDATE officers 
-            SET first_name = ?, second_name = ?, surname = ?
-            WHERE id = ?
-        """, (first_name, second_name, surname, teacher_id))
-        
-        conn.commit()
-        conn.close()
+        officer.first_name = first_name
+        officer.second_name = second_name
+        officer.surname = surname
+        db.commit()
+        db.refresh(officer)
         
         return {"success": True, "message": "Данные преподавателя обновлены"}
         
@@ -2980,63 +1812,40 @@ def update_teacher(teacher_id: int, data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка обновления преподавателя: {str(e)}")
 
 @app.delete("/teachers/{teacher_id}")
-def delete_teacher(teacher_id: int):
-    """
-    Удалить преподавателя (мягкое удаление)
-    """
+def delete_teacher_api(teacher_id: int, db: Session = Depends(get_db)):
+    """Удалить преподавателя (мягкое удаление)"""
     try:
         print(f"🗑️ Мягкое удаление преподавателя ID={teacher_id}")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования преподавателя
-        cursor.execute("SELECT first_name, second_name, surname FROM officers WHERE id = ?", (teacher_id,))
-        teacher = cursor.fetchone()
-        if not teacher:
+        officer = db.query(models.Officer).filter(models.Officer.id == teacher_id).first()
+        if not officer:
             raise HTTPException(status_code=404, detail="Преподаватель не найден")
         
-        print("111")
         # Мягкое удаление:
         # 1. Обновляем уроки - очищаем поле officer_id
-        cursor.execute("""
-            UPDATE lessons 
-            SET officer_id = NULL 
-            WHERE officer_id = ?
-        """, (teacher_id, ))
-        print(f"✅ Очищено поле officer_id в {cursor.rowcount} уроках")
+        db.query(models.Lesson).filter(
+            models.Lesson.officer_id == teacher_id
+        ).update({"officer_id": None})
         
         # 2. Удаляем преподавателя из squad_subject_loads
-        cursor.execute("""
-            SELECT subject_load_id, squad, officers 
-            FROM squad_subject_loads 
-            WHERE officers LIKE '%' || ? || '%'
-        """, (str(teacher_id),))
+        squad_loads = db.query(models.SquadSubjectLoad).filter(
+            models.SquadSubjectLoad.officers.like(f'%{teacher_id}%')
+        ).all()
         
-        loads = cursor.fetchall()
-        for row in loads:
-            officers = row["officers"]
-            if officers:
+        for squad_load in squad_loads:
+            if squad_load.officers:
                 # Удаляем преподавателя из строки
-                officer_list = [o.strip() for o in officers.split("/") if o.strip()]
+                officer_list = [o.strip() for o in squad_load.officers.split("/") if o.strip()]
                 officer_list = [o for o in officer_list if o != str(teacher_id)]
                 new_officers = "/".join(officer_list)
-                
-                cursor.execute("""
-                    UPDATE squad_subject_loads 
-                    SET officers = ? 
-                    WHERE subject_load_id = ? AND squad = ?
-                """, (new_officers, row["subject_load_id"], row["squad"]))
-        
-        print(f"✅ Преподаватель удален из {len(loads)} связок")
+                squad_load.officers = new_officers
         
         # 3. Удаляем самого преподавателя
-        cursor.execute("DELETE FROM officers WHERE id = ?", (teacher_id,))
+        db.delete(officer)
+        db.commit()
         
-        conn.commit()
-        conn.close()
-        
-        teacher_name = f"{teacher['surname']} {teacher['first_name']} {teacher['second_name']}"
+        teacher_name = f"{officer.surname} {officer.first_name} {officer.second_name}"
         return {"success": True, "message": f"Преподаватель {teacher_name} удален"}
         
     except HTTPException:
@@ -3046,70 +1855,67 @@ def delete_teacher(teacher_id: int):
         raise HTTPException(status_code=500, detail=f"Ошибка удаления преподавателя: {str(e)}")
 
 @app.get("/teachers/{teacher_id}/available-connections")
-def get_available_connections(teacher_id: int):
-    """
-    Получить доступные связки для добавления преподавателя
-    """
+def get_available_connections_api(teacher_id: int, db: Session = Depends(get_db)):
+    """Получить доступные связки для добавления преподавателя"""
     try:
         print(f"📊 Получение доступных связок для преподавателя ID={teacher_id}")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Связки, где преподавателя еще нет
-        cursor.execute("""
-            SELECT 
-                ssl.subject_load_id,
-                ssl.squad,
-                ssl.officers,
-                s.name as subject_name,
-                d.name as department_name,
-                st.type,
-                st.course,
-                sl.semester
-            FROM squad_subject_loads ssl
-            JOIN subject_loads sl ON ssl.subject_load_id = sl.id
-            JOIN subjects s ON sl.subject_id = s.id
-            JOIN departments d ON sl.department_id = d.id
-            JOIN squad_types st ON sl.squad_type_id = st.id
-            WHERE ssl.officers NOT LIKE '%' || ? || '%'
-            ORDER BY s.name, ssl.squad
-        """, (str(teacher_id),))
+        connections_query = db.query(
+            models.SquadSubjectLoad.subject_load_id,
+            models.SquadSubjectLoad.squad,
+            models.SquadSubjectLoad.officers,
+            models.Subject.name.label("subject_name"),
+            models.Department.name.label("department_name"),
+            models.SquadType.type,
+            models.SquadType.course,
+            models.SubjectLoad.semester
+        ).join(
+            models.SubjectLoad,
+            models.SquadSubjectLoad.subject_load_id == models.SubjectLoad.id
+        ).join(
+            models.Subject,
+            models.SubjectLoad.subject_id == models.Subject.id
+        ).join(
+            models.Department,
+            models.SubjectLoad.department_id == models.Department.id
+        ).join(
+            models.SquadType,
+            models.SubjectLoad.squad_type_id == models.SquadType.id
+        ).filter(
+            ~models.SquadSubjectLoad.officers.like(f'%{teacher_id}%')
+        ).order_by(
+            models.Subject.name,
+            models.SquadSubjectLoad.squad
+        ).all()
         
         connections = []
-        for row in cursor.fetchall():
+        for row in connections_query:
             officer_ids = []
             officer_names = []
             
-            if row["officers"]:
-                officer_ids = [id.strip() for id in row["officers"].split("/") if id.strip()]
+            if row.officers:
+                officer_ids = [id_str.strip() for id_str in row.officers.split("/") if id_str.strip()]
                 
                 # Получаем имена текущих преподавателей
                 if officer_ids:
-                    placeholders = ','.join('?' * len(officer_ids))
-                    cursor.execute(f"""
-                        SELECT first_name, second_name, surname
-                        FROM officers
-                        WHERE id IN ({placeholders})
-                        ORDER BY surname, first_name
-                    """, officer_ids)
+                    officers = db.query(models.Officer).filter(
+                        models.Officer.id.in_([int(id_str) for id_str in officer_ids if id_str.isdigit()])
+                    ).order_by(models.Officer.surname, models.Officer.first_name).all()
                     
-                    for officer in cursor.fetchall():
-                        officer_names.append(f"{officer['surname']} {officer['first_name']} {officer['second_name']}")
+                    officer_names = [f"{o.surname} {o.first_name} {o.second_name}" for o in officers]
             
             connections.append({
-                "subject_load_id": row["subject_load_id"],
-                "squad": row["squad"],
+                "subject_load_id": row.subject_load_id,
+                "squad": row.squad,
                 "officers": officer_ids,
                 "officer_names": officer_names,
-                "subject_name": row["subject_name"],
-                "department_name": row["department_name"],
-                "type": row["type"],
-                "course": row["course"],
-                "semester": row["semester"]
+                "subject_name": row.subject_name,
+                "department_name": row.department_name,
+                "type": row.type,
+                "course": row.course,
+                "semester": row.semester
             })
-        
-        conn.close()
         
         print(f"✅ Найдено доступных связок: {len(connections)}")
         return connections
@@ -3119,45 +1925,39 @@ def get_available_connections(teacher_id: int):
         raise HTTPException(status_code=500, detail=f"Ошибка получения доступных связок: {str(e)}")
 
 @app.put("/teachers/subject-loads/{subject_load_id}/squads/{squad_number}/officers")
-def update_connection_officers(subject_load_id: int, squad_number: str, data: dict):
-    """
-    Обновить список преподавателей в связке нагрузка-взвод
-    """
+def update_connection_officers_api(
+    subject_load_id: int,
+    squad_number: str,
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    """Обновить список преподавателей в связке нагрузка-взвод"""
     try:
         print(f"🔄 Обновление преподавателей в связке {subject_load_id}-{squad_number}")
         
         officers = data.get("officers", [])
         
         # Валидация: все преподаватели должны существовать
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         for officer_id in officers:
-            cursor.execute("SELECT id FROM officers WHERE id = ?", (officer_id,))
-            if not cursor.fetchone():
+            officer = db.query(models.Officer).filter(models.Officer.id == officer_id).first()
+            if not officer:
                 raise HTTPException(status_code=400, detail=f"Преподаватель с ID={officer_id} не найден")
         
         # Формируем строку преподавателей
         officers_str = "/".join(str(officer_id) for officer_id in officers)
         
         # Проверка существования связки
-        cursor.execute("""
-            SELECT subject_load_id FROM squad_subject_loads 
-            WHERE subject_load_id = ? AND squad = ?
-        """, (subject_load_id, squad_number))
+        squad_load = db.query(models.SquadSubjectLoad).filter(
+            models.SquadSubjectLoad.subject_load_id == subject_load_id,
+            models.SquadSubjectLoad.squad == squad_number
+        ).first()
         
-        if not cursor.fetchone():
+        if not squad_load:
             raise HTTPException(status_code=404, detail="Связка не найдена")
         
         # Обновляем преподавателей
-        cursor.execute("""
-            UPDATE squad_subject_loads 
-            SET officers = ? 
-            WHERE subject_load_id = ? AND squad = ?
-        """, (officers_str, subject_load_id, squad_number))
-        
-        conn.commit()
-        conn.close()
+        squad_load.officers = officers_str
+        db.commit()
         
         return {"success": True, "message": "Преподаватели обновлены"}
         
@@ -3167,133 +1967,119 @@ def update_connection_officers(subject_load_id: int, squad_number: str, data: di
         print(f"❌ Ошибка обновления преподавателей: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка обновления преподавателей: {str(e)}")
 
-# ============================================================================
-# ПРЕДМЕТЫ
-# ============================================================================
-
+# ------------------------ SUBJECTS ------------------------
 @app.get("/subjects")
-def get_subjects():
-    """
-    Получить все предметы
-    """
+def get_subjects_api(db: Session = Depends(get_db)):
+    """Получить все предметы"""
     try:
         print("🔄 Получение списка предметов")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        # Получаем все предметы
+        subjects = db.query(models.Subject).order_by(models.Subject.name).all()
         
-        cursor.execute("""
-            SELECT 
-                id,
-                name,
-                (SELECT COUNT(*) FROM subject_loads WHERE subject_id = subjects.id) as loads_count
-            FROM subjects
-            ORDER BY name
-        """)
+        result = []
+        for subject in subjects:
+            # Считаем количество нагрузок для каждого предмета
+            loads_count = db.query(func.count(models.SubjectLoad.id)).filter(
+                models.SubjectLoad.subject_id == subject.id
+            ).scalar()
+            
+            result.append({
+                "id": subject.id,
+                "name": subject.name,
+                "loads_count": loads_count
+            })
         
-        subjects = cursor.fetchall()
-        conn.close()
-        
-        result = [dict(row) for row in subjects]
         print(f"✅ Найдено предметов: {len(result)}")
         return result
         
     except Exception as e:
         print(f"❌ Ошибка получения предметов: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения предметов: {str(e)}")
-
+    
 @app.get("/subjects/{subject_id}")
-def get_subject_details(subject_id: int):
-    """
-    Получить детальную информацию о предмете с нагрузками
-    """
+def get_subject_details_api(subject_id: int, db: Session = Depends(get_db)):
+    """Получить детальную информацию о предмете с нагрузками"""
     try:
         print(f"🔄 Получение деталей предмета ID={subject_id}")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Основная информация о предмете
-        cursor.execute("""
-            SELECT 
-                id,
-                name
-            FROM subjects
-            WHERE id = ?
-        """, (subject_id,))
-        
-        subject = cursor.fetchone()
+        subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
         if not subject:
             raise HTTPException(status_code=404, detail="Предмет не найден")
         
         # Нагрузки этого предмета
-        cursor.execute("""
-            SELECT 
-                sl.id,
-                sl.semester,
-                d.name as department_name,
-                st.type,
-                st.course
-            FROM subject_loads sl
-            JOIN departments d ON sl.department_id = d.id
-            JOIN squad_types st ON sl.squad_type_id = st.id
-            WHERE sl.subject_id = ?
-            ORDER BY d.name, st.course, sl.semester
-        """, (subject_id,))
+        loads = db.query(
+            models.SubjectLoad.id,
+            models.SubjectLoad.semester,
+            models.Department.name.label("department_name"),
+            models.SquadType.type,
+            models.SquadType.course
+        ).join(
+            models.Department,
+            models.SubjectLoad.department_id == models.Department.id
+        ).join(
+            models.SquadType,
+            models.SubjectLoad.squad_type_id == models.SquadType.id
+        ).filter(
+            models.SubjectLoad.subject_id == subject_id
+        ).order_by(
+            models.Department.name,
+            models.SquadType.course,
+            models.SubjectLoad.semester
+        ).all()
         
-        loads = []
-        for row in cursor.fetchall():
-            load_id = row["id"]
-            
+        loads_list = []
+        for row in loads:
             # Взводы для этой нагрузки
-            cursor.execute("""
-                SELECT 
-                    ssl.squad as number,
-                    d.name as department_name
-                FROM squad_subject_loads ssl
-                JOIN squads sq ON ssl.squad = sq.number
-                JOIN departments d ON sq.department_id = d.id
-                WHERE ssl.subject_load_id = ?
-                ORDER BY ssl.squad
-            """, (load_id,))
-            
-            squads = [dict(squad) for squad in cursor.fetchall()]
+            squads = db.query(
+                models.SquadSubjectLoad.squad.label("number"),
+                models.Department.name.label("department_name")
+            ).join(
+                models.Squad,
+                models.SquadSubjectLoad.squad == models.Squad.number
+            ).join(
+                models.Department,
+                models.Squad.department_id == models.Department.id
+            ).filter(
+                models.SquadSubjectLoad.subject_load_id == row.id
+            ).order_by(
+                models.SquadSubjectLoad.squad
+            ).all()
             
             # Статистика по нагрузке
-            cursor.execute("""
-                SELECT 
-                    COUNT(DISTINCT t.id) as themes_count,
-                    COUNT(DISTINCT shlc.lesson_type_id) as lesson_types_count,
-                    SUM(shlc.hours_count) as total_hours
-                FROM subject_loads sl
-                LEFT JOIN themes t ON sl.id = t.subject_load_id
-                LEFT JOIN subject_hours_load_count shlc ON sl.id = shlc.subject_load_id
-                WHERE sl.id = ?
-            """, (load_id,))
+            themes_count = db.query(models.Theme).filter(
+                models.Theme.subject_load_id == row.id
+            ).count()
             
-            stats = cursor.fetchone()
+            lesson_types_count = db.query(models.SubjectHoursLoadCount).filter(
+                models.SubjectHoursLoadCount.subject_load_id == row.id
+            ).distinct(models.SubjectHoursLoadCount.lesson_type_id).count()
             
-            loads.append({
-                "id": load_id,
-                "semester": row["semester"],
-                "department_name": row["department_name"],
-                "type": row["type"],
-                "course": row["course"],
-                "squads": squads,
-                "themes_count": stats["themes_count"] or 0,
-                "lesson_types_count": stats["lesson_types_count"] or 0,
-                "total_hours": stats["total_hours"] or 0
+            total_hours = db.query(func.sum(models.SubjectHoursLoadCount.hours_count)).filter(
+                models.SubjectHoursLoadCount.subject_load_id == row.id
+            ).scalar() or 0
+            
+            loads_list.append({
+                "id": row.id,
+                "semester": row.semester,
+                "department_name": row.department_name,
+                "type": row.type,
+                "course": row.course,
+                "squads": [{"number": s.number, "department_name": s.department_name} for s in squads],
+                "themes_count": themes_count,
+                "lesson_types_count": lesson_types_count,
+                "total_hours": total_hours
             })
         
-        conn.close()
-        
         result = {
-            **dict(subject),
-            "loads_count": len(loads),
-            "loads": loads
+            "id": subject.id,
+            "name": subject.name,
+            "loads_count": len(loads_list),
+            "loads": loads_list
         }
         
-        print(f"✅ Данные предмета загружены, нагрузок: {len(loads)}")
+        print(f"✅ Данные предмета загружены, нагрузок: {len(loads_list)}")
         return result
         
     except HTTPException:
@@ -3303,10 +2089,8 @@ def get_subject_details(subject_id: int):
         raise HTTPException(status_code=500, detail=f"Ошибка получения деталей предмета: {str(e)}")
 
 @app.post("/subjects")
-def add_subject(data: dict):
-    """
-    Добавить новый предмет
-    """
+def add_subject_api(data: dict, db: Session = Depends(get_db)):
+    """Добавить новый предмет"""
     try:
         print(f"➕ Добавление нового предмета: {data}")
         
@@ -3315,24 +2099,19 @@ def add_subject(data: dict):
         if not name:
             raise HTTPException(status_code=400, detail="Название предмета обязательно")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка уникальности
-        cursor.execute("SELECT id FROM subjects WHERE name = ?", (name,))
-        
-        if cursor.fetchone():
+        existing = db.query(models.Subject).filter(models.Subject.name == name).first()
+        if existing:
             raise HTTPException(status_code=400, detail="Предмет с таким названием уже существует")
         
         # Добавление предмета
-        cursor.execute("INSERT INTO subjects (name) VALUES (?)", (name,))
+        subject = models.Subject(name=name)
+        db.add(subject)
+        db.commit()
+        db.refresh(subject)
         
-        subject_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        
-        print(f"✅ Предмет добавлен, ID={subject_id}")
-        return {"success": True, "message": "Предмет добавлен", "id": subject_id}
+        print(f"✅ Предмет добавлен, ID={subject.id}")
+        return {"success": True, "message": "Предмет добавлен", "id": subject.id}
         
     except HTTPException:
         raise
@@ -3341,10 +2120,8 @@ def add_subject(data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка добавления предмета: {str(e)}")
 
 @app.put("/subjects/{subject_id}")
-def update_subject(subject_id: int, data: dict):
-    """
-    Обновить предмет
-    """
+def update_subject_api(subject_id: int, data: dict, db: Session = Depends(get_db)):
+    """Обновить предмет"""
     try:
         print(f"🔄 Обновление предмета ID={subject_id}: {data}")
         
@@ -3353,28 +2130,24 @@ def update_subject(subject_id: int, data: dict):
         if not name:
             raise HTTPException(status_code=400, detail="Название предмета обязательно")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования предмета
-        cursor.execute("SELECT id FROM subjects WHERE id = ?", (subject_id,))
-        if not cursor.fetchone():
+        subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+        if not subject:
             raise HTTPException(status_code=404, detail="Предмет не найден")
         
         # Проверка уникальности (кроме текущего предмета)
-        cursor.execute("""
-            SELECT id FROM subjects 
-            WHERE name = ? AND id != ?
-        """, (name, subject_id))
+        existing = db.query(models.Subject).filter(
+            models.Subject.name == name,
+            models.Subject.id != subject_id
+        ).first()
         
-        if cursor.fetchone():
+        if existing:
             raise HTTPException(status_code=400, detail="Предмет с таким названием уже существует")
         
         # Обновление предмета
-        cursor.execute("UPDATE subjects SET name = ? WHERE id = ?", (name, subject_id))
-        
-        conn.commit()
-        conn.close()
+        subject.name = name
+        db.commit()
+        db.refresh(subject)
         
         return {"success": True, "message": "Предмет обновлен"}
         
@@ -3385,81 +2158,62 @@ def update_subject(subject_id: int, data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка обновления предмета: {str(e)}")
 
 @app.delete("/subjects/{subject_id}")
-def delete_subject(subject_id: int):
-    """
-    Удалить предмет со всеми связанными данными
-    """
+def delete_subject_api(subject_id: int, db: Session = Depends(get_db)):
+    """Удалить предмет со всеми связанными данными"""
     try:
         print(f"🗑️ Удаление предмета ID={subject_id} со всеми связанными данными")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования предмета
-        cursor.execute("SELECT name FROM subjects WHERE id = ?", (subject_id,))
-        subject = cursor.fetchone()
+        subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
         if not subject:
             raise HTTPException(status_code=404, detail="Предмет не найден")
         
         # Получаем все нагрузки этого предмета
-        cursor.execute("SELECT id FROM subject_loads WHERE subject_id = ?", (subject_id,))
-        load_ids = [row["id"] for row in cursor.fetchall()]
+        load_ids = [load.id for load in db.query(models.SubjectLoad.id).filter(
+            models.SubjectLoad.subject_id == subject_id
+        ).all()]
         
         # Начинаем транзакцию для каскадного удаления
-        conn.execute("BEGIN TRANSACTION")
-        
         try:
             if load_ids:
                 # 1. Удаляем темы
-                cursor.execute("""
-                    DELETE FROM themes 
-                    WHERE subject_load_id IN ({})
-                """.format(','.join('?' * len(load_ids))), load_ids)
-                print(f"✅ Удалено тем: {cursor.rowcount}")
+                db.query(models.Theme).filter(
+                    models.Theme.subject_load_id.in_(load_ids)
+                ).delete(synchronize_session=False)
                 
                 # 2. Удаляем часы нагрузки
-                cursor.execute("""
-                    DELETE FROM subject_hours_load_count 
-                    WHERE subject_load_id IN ({})
-                """.format(','.join('?' * len(load_ids))), load_ids)
-                print(f"✅ Удалено часов нагрузки: {cursor.rowcount}")
+                db.query(models.SubjectHoursLoadCount).filter(
+                    models.SubjectHoursLoadCount.subject_load_id.in_(load_ids)
+                ).delete(synchronize_session=False)
                 
-                # 3. Удаляем связки с взводами
-                cursor.execute("""
-                    DELETE FROM squad_subject_loads 
-                    WHERE subject_load_id IN ({})
-                """.format(','.join('?' * len(load_ids))), load_ids)
-                print(f"✅ Удалено связок с взводами: {cursor.rowcount}")
+                # 3. Удаляем привязки к взводам
+                db.query(models.SquadSubjectLoad).filter(
+                    models.SquadSubjectLoad.subject_load_id.in_(load_ids)
+                ).delete(synchronize_session=False)
                 
                 # 4. Обновляем уроки (очищаем связанные поля)
-                cursor.execute("""
-                    UPDATE lessons 
-                    SET theme_id = NULL, 
-                        subject_load_id = NULL,
-                        audience = NULL
-                    WHERE subject_load_id IN ({})
-                """.format(','.join('?' * len(load_ids))), load_ids)
-                print(f"✅ Обновлено уроков: {cursor.rowcount}")
+                db.query(models.Lesson).filter(
+                    models.Lesson.subject_load_id.in_(load_ids)
+                ).update({
+                    "theme_id": None,
+                    "subject_load_id": None,
+                    "audience": None
+                }, synchronize_session=False)
                 
                 # 5. Удаляем сами нагрузки
-                cursor.execute("""
-                    DELETE FROM subject_loads 
-                    WHERE id IN ({})
-                """.format(','.join('?' * len(load_ids))), load_ids)
-                print(f"✅ Удалено нагрузок: {cursor.rowcount}")
+                db.query(models.SubjectLoad).filter(
+                    models.SubjectLoad.id.in_(load_ids)
+                ).delete(synchronize_session=False)
             
             # 6. Удаляем сам предмет
-            cursor.execute("DELETE FROM subjects WHERE id = ?", (subject_id,))
-            
-            conn.commit()
+            db.delete(subject)
+            db.commit()
             
         except Exception as e:
-            conn.rollback()
+            db.rollback()
             raise
         
-        conn.close()
-        
-        subject_name = subject["name"]
+        subject_name = subject.name
         return {"success": True, "message": f"Предмет '{subject_name}' и все связанные данные удалены"}
         
     except HTTPException:
@@ -3468,32 +2222,34 @@ def delete_subject(subject_id: int):
         print(f"❌ Ошибка удаления предмета: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка удаления предмета: {str(e)}")
 
-# ----- DEPARTMENTS -----
+# ------------------------ DEPARTMENTS ------------------------
 @app.get("/departments")
-def get_departments():
-    """
-    Получить все кафедры
-    """
+def get_departments_api(db: Session = Depends(get_db)):
+    """Получить все кафедры"""
     try:
         print("🔄 Получение списка кафедр")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        # Получаем все кафедры
+        departments = db.query(models.Department).order_by(models.Department.name).all()
         
-        cursor.execute("""
-            SELECT 
-                d.id,
-                d.name,
-                (SELECT COUNT(*) FROM squads WHERE department_id = d.id) as squads_count,
-                (SELECT COUNT(*) FROM subject_loads WHERE department_id = d.id) as loads_count
-            FROM departments d
-            ORDER BY d.name
-        """)
+        result = []
+        for department in departments:
+            # Считаем статистику для каждой кафедры отдельно
+            squads_count = db.query(func.count(models.Squad.number)).filter(
+                models.Squad.department_id == department.id
+            ).scalar()
+            
+            loads_count = db.query(func.count(models.SubjectLoad.id)).filter(
+                models.SubjectLoad.department_id == department.id
+            ).scalar()
+            
+            result.append({
+                "id": department.id,
+                "name": department.name,
+                "squads_count": squads_count,
+                "loads_count": loads_count
+            })
         
-        departments = cursor.fetchall()
-        conn.close()
-        
-        result = [dict(row) for row in departments]
         print(f"✅ Найдено кафедр: {len(result)}")
         return result
         
@@ -3502,112 +2258,109 @@ def get_departments():
         raise HTTPException(status_code=500, detail=f"Ошибка получения кафедр: {str(e)}")
 
 @app.get("/departments/{department_id}")
-def get_department_details(department_id: int):
-    """
-    Получить детальную информацию о кафедре со взводами и нагрузками
-    """
+def get_department_details_api(department_id: int, db: Session = Depends(get_db)):
+    """Получить детальную информацию о кафедре со взводами и нагрузками"""
     try:
         print(f"🔄 Получение деталей кафедры ID={department_id}")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Основная информация о кафедре
-        cursor.execute("""
-            SELECT 
-                id,
-                name
-            FROM departments
-            WHERE id = ?
-        """, (department_id,))
-        
-        department = cursor.fetchone()
+        department = db.query(models.Department).filter(models.Department.id == department_id).first()
         if not department:
             raise HTTPException(status_code=404, detail="Кафедра не найдена")
         
-        # Взводы этой кафедры
-        cursor.execute("""
-            SELECT 
-                s.number,
-                st.type,
-                st.course,
-                s.day,
-                s.start_week,
-                s.end_week
-            FROM squads s
-            JOIN squad_types st ON s.squad_type_id = st.id
-            WHERE s.department_id = ?
-            ORDER BY s.number
-        """, (department_id,))
+        # Взводы этой кафедры - преобразуем Row в словарь правильно
+        squads = db.query(
+            models.Squad.number,
+            models.SquadType.type,
+            models.SquadType.course,
+            models.Squad.day,
+            models.Squad.start_week,
+            models.Squad.end_week
+        ).join(
+            models.SquadType,
+            models.Squad.squad_type_id == models.SquadType.id
+        ).filter(
+            models.Squad.department_id == department_id
+        ).order_by(
+            models.Squad.number
+        ).all()
         
-        squads = [dict(row) for row in cursor.fetchall()]
-        
-        # Нагрузки этой кафедры
-        cursor.execute("""
-            SELECT 
-                sl.id,
-                sl.semester,
-                s.name as subject_name,
-                st.type,
-                st.course
-            FROM subject_loads sl
-            JOIN subjects s ON sl.subject_id = s.id
-            JOIN squad_types st ON sl.squad_type_id = st.id
-            WHERE sl.department_id = ?
-            ORDER BY s.name, st.course, sl.semester
-        """, (department_id,))
-        
-        loads = []
-        for row in cursor.fetchall():
-            load_id = row["id"]
-            
-            # Взводы для этой нагрузки
-            cursor.execute("""
-                SELECT squad
-                FROM squad_subject_loads
-                WHERE subject_load_id = ?
-                ORDER BY squad
-            """, (load_id,))
-            
-            load_squads = [squad["squad"] for squad in cursor.fetchall()]
-            
-            # Статистика по нагрузке
-            cursor.execute("""
-                SELECT 
-                    COUNT(DISTINCT t.id) as themes_count,
-                    COUNT(DISTINCT shlc.lesson_type_id) as lesson_types_count,
-                    SUM(shlc.hours_count) as total_hours
-                FROM subject_loads sl
-                LEFT JOIN themes t ON sl.id = t.subject_load_id
-                LEFT JOIN subject_hours_load_count shlc ON sl.id = shlc.subject_load_id
-                WHERE sl.id = ?
-            """, (load_id,))
-            
-            stats = cursor.fetchone()
-            
-            loads.append({
-                "id": load_id,
-                "semester": row["semester"],
-                "subject_name": row["subject_name"],
-                "type": row["type"],
-                "course": row["course"],
-                "squads": load_squads,
-                "themes_count": stats["themes_count"] or 0,
-                "lesson_types_count": stats["lesson_types_count"] or 0,
-                "total_hours": stats["total_hours"] or 0
+        # Правильное преобразование Row в словарь
+        squads_list = []
+        for row in squads:
+            squads_list.append({
+                "number": row.number,
+                "type": row.type,
+                "course": row.course,
+                "day": row.day,
+                "start_week": row.start_week,
+                "end_week": row.end_week
             })
         
-        conn.close()
+        # Нагрузки этой кафедры
+        loads = db.query(
+            models.SubjectLoad.id,
+            models.SubjectLoad.semester,
+            models.Subject.name.label("subject_name"),
+            models.SquadType.type,
+            models.SquadType.course
+        ).join(
+            models.Subject,
+            models.SubjectLoad.subject_id == models.Subject.id
+        ).join(
+            models.SquadType,
+            models.SubjectLoad.squad_type_id == models.SquadType.id
+        ).filter(
+            models.SubjectLoad.department_id == department_id
+        ).order_by(
+            models.Subject.name,
+            models.SquadType.course,
+            models.SubjectLoad.semester
+        ).all()
+        
+        loads_list = []
+        for row in loads:
+            # Взводы для этой нагрузки
+            load_squads = db.query(models.SquadSubjectLoad.squad).filter(
+                models.SquadSubjectLoad.subject_load_id == row.id
+            ).order_by(models.SquadSubjectLoad.squad).all()
+            
+            # Статистика по нагрузке
+            themes_count = db.query(models.Theme).filter(
+                models.Theme.subject_load_id == row.id
+            ).count()
+            
+            lesson_types_count = db.query(models.SubjectHoursLoadCount).filter(
+                models.SubjectHoursLoadCount.subject_load_id == row.id
+            ).distinct(models.SubjectHoursLoadCount.lesson_type_id).count()
+            
+            total_hours = db.query(func.sum(models.SubjectHoursLoadCount.hours_count)).filter(
+                models.SubjectHoursLoadCount.subject_load_id == row.id
+            ).scalar() or 0
+            
+            # Правильное преобразование
+            loads_list.append({
+                "id": row.id,
+                "semester": row.semester,
+                "subject_name": row.subject_name,
+                "type": row.type,
+                "course": row.course,
+                "squads": [squad.squad for squad in load_squads],
+                "themes_count": themes_count,
+                "lesson_types_count": lesson_types_count,
+                "total_hours": total_hours
+            })
         
         result = {
-            **dict(department),
-            "squads_count": len(squads),
-            "loads_count": len(loads),
-            "squads": squads,
-            "loads": loads
+            "id": department.id,
+            "name": department.name,
+            "squads_count": len(squads_list),
+            "loads_count": len(loads_list),
+            "squads": squads_list,
+            "loads": loads_list
         }
         
-        print(f"✅ Данные кафедры загружены, взводов: {len(squads)}, нагрузок: {len(loads)}")
+        print(f"✅ Данные кафедры загружены, взводов: {len(squads_list)}, нагрузок: {len(loads_list)}")
         return result
         
     except HTTPException:
@@ -3615,12 +2368,10 @@ def get_department_details(department_id: int):
     except Exception as e:
         print(f"❌ Ошибка получения деталей кафедры: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения деталей кафедры: {str(e)}")
-
+    
 @app.post("/departments")
-def add_department(data: dict):
-    """
-    Добавить новую кафедру
-    """
+def add_department_api(data: dict, db: Session = Depends(get_db)):
+    """Добавить новую кафедру"""
     try:
         print(f"➕ Добавление новой кафедры: {data}")
         
@@ -3629,24 +2380,19 @@ def add_department(data: dict):
         if not name:
             raise HTTPException(status_code=400, detail="Название кафедры обязательно")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка уникальности
-        cursor.execute("SELECT id FROM departments WHERE name = ?", (name,))
-        
-        if cursor.fetchone():
+        existing = db.query(models.Department).filter(models.Department.name == name).first()
+        if existing:
             raise HTTPException(status_code=400, detail="Кафедра с таким названием уже существует")
         
         # Добавление кафедры
-        cursor.execute("INSERT INTO departments (name) VALUES (?)", (name,))
+        department = models.Department(name=name)
+        db.add(department)
+        db.commit()
+        db.refresh(department)
         
-        department_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        
-        print(f"✅ Кафедра добавлена, ID={department_id}")
-        return {"success": True, "message": "Кафедра добавлена", "id": department_id}
+        print(f"✅ Кафедра добавлена, ID={department.id}")
+        return {"success": True, "message": "Кафедра добавлена", "id": department.id}
         
     except HTTPException:
         raise
@@ -3655,10 +2401,8 @@ def add_department(data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка добавления кафедры: {str(e)}")
 
 @app.put("/departments/{department_id}")
-def update_department(department_id: int, data: dict):
-    """
-    Обновить кафедру
-    """
+def update_department_api(department_id: int, data: dict, db: Session = Depends(get_db)):
+    """Обновить кафедру"""
     try:
         print(f"🔄 Обновление кафедры ID={department_id}: {data}")
         
@@ -3667,28 +2411,24 @@ def update_department(department_id: int, data: dict):
         if not name:
             raise HTTPException(status_code=400, detail="Название кафедры обязательно")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования кафедры
-        cursor.execute("SELECT id FROM departments WHERE id = ?", (department_id,))
-        if not cursor.fetchone():
+        department = db.query(models.Department).filter(models.Department.id == department_id).first()
+        if not department:
             raise HTTPException(status_code=404, detail="Кафедра не найден")
         
         # Проверка уникальности (кроме текущей кафедры)
-        cursor.execute("""
-            SELECT id FROM departments 
-            WHERE name = ? AND id != ?
-        """, (name, department_id))
+        existing = db.query(models.Department).filter(
+            models.Department.name == name,
+            models.Department.id != department_id
+        ).first()
         
-        if cursor.fetchone():
+        if existing:
             raise HTTPException(status_code=400, detail="Кафедра с таким названием уже существует")
         
         # Обновление кафедры
-        cursor.execute("UPDATE departments SET name = ? WHERE id = ?", (name, department_id))
-        
-        conn.commit()
-        conn.close()
+        department.name = name
+        db.commit()
+        db.refresh(department)
         
         return {"success": True, "message": "Кафедра обновлена"}
         
@@ -3699,101 +2439,78 @@ def update_department(department_id: int, data: dict):
         raise HTTPException(status_code=500, detail=f"Ошибка обновления кафедры: {str(e)}")
 
 @app.delete("/departments/{department_id}")
-def delete_department(department_id: int):
-    """
-    Удалить кафедру со всеми связанными данными
-    """
+def delete_department_api(department_id: int, db: Session = Depends(get_db)):
+    """Удалить кафедру со всеми связанными данными"""
     try:
         print(f"🗑️ Удаление кафедры ID={department_id} со всеми связанными данными")
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
         # Проверка существования кафедры
-        cursor.execute("SELECT name FROM departments WHERE id = ?", (department_id,))
-        department = cursor.fetchone()
+        department = db.query(models.Department).filter(models.Department.id == department_id).first()
         if not department:
             raise HTTPException(status_code=404, detail="Кафедра не найдена")
         
         # Получаем все взводы этой кафедры
-        cursor.execute("SELECT number FROM squads WHERE department_id = ?", (department_id,))
-        squad_numbers = [row["number"] for row in cursor.fetchall()]
+        squad_numbers = [squad.number for squad in db.query(models.Squad.number).filter(
+            models.Squad.department_id == department_id
+        ).all()]
         
         # Получаем все нагрузки этой кафедры
-        cursor.execute("SELECT id FROM subject_loads WHERE department_id = ?", (department_id,))
-        load_ids = [row["id"] for row in cursor.fetchall()]
+        load_ids = [load.id for load in db.query(models.SubjectLoad.id).filter(
+            models.SubjectLoad.department_id == department_id
+        ).all()]
         
         # Начинаем транзакцию для каскадного удаления
-        conn.execute("BEGIN TRANSACTION")
-        
         try:
             if load_ids:
                 # 1. Удаляем темы
-                cursor.execute("""
-                    DELETE FROM themes 
-                    WHERE subject_load_id IN ({})
-                """.format(','.join('?' * len(load_ids))), load_ids)
-                print(f"✅ Удалено тем: {cursor.rowcount}")
+                db.query(models.Theme).filter(
+                    models.Theme.subject_load_id.in_(load_ids)
+                ).delete(synchronize_session=False)
                 
                 # 2. Удаляем часы нагрузки
-                cursor.execute("""
-                    DELETE FROM subject_hours_load_count 
-                    WHERE subject_load_id IN ({})
-                """.format(','.join('?' * len(load_ids))), load_ids)
-                print(f"✅ Удалено часов нагрузки: {cursor.rowcount}")
+                db.query(models.SubjectHoursLoadCount).filter(
+                    models.SubjectHoursLoadCount.subject_load_id.in_(load_ids)
+                ).delete(synchronize_session=False)
                 
-                # 3. Удаляем связки с взводами
-                cursor.execute("""
-                    DELETE FROM squad_subject_loads 
-                    WHERE subject_load_id IN ({})
-                """.format(','.join('?' * len(load_ids))), load_ids)
-                print(f"✅ Удалено связок с взводами: {cursor.rowcount}")
+                # 3. Удаляем привязки к взводам
+                db.query(models.SquadSubjectLoad).filter(
+                    models.SquadSubjectLoad.subject_load_id.in_(load_ids)
+                ).delete(synchronize_session=False)
                 
                 # 4. Обновляем уроки (очищаем связанные поля)
-                cursor.execute("""
-                    UPDATE lessons 
-                    SET theme_id = NULL, 
-                        subject_load_id = NULL,
-                        audience = NULL
-                    WHERE subject_load_id IN ({})
-                """.format(','.join('?' * len(load_ids))), load_ids)
-                print(f"✅ Обновлено уроков: {cursor.rowcount}")
+                db.query(models.Lesson).filter(
+                    models.Lesson.subject_load_id.in_(load_ids)
+                ).update({
+                    "theme_id": None,
+                    "subject_load_id": None,
+                    "audience": None
+                }, synchronize_session=False)
                 
                 # 5. Удаляем сами нагрузки
-                cursor.execute("""
-                    DELETE FROM subject_loads 
-                    WHERE id IN ({})
-                """.format(','.join('?' * len(load_ids))), load_ids)
-                print(f"✅ Удалено нагрузок: {cursor.rowcount}")
+                db.query(models.SubjectLoad).filter(
+                    models.SubjectLoad.id.in_(load_ids)
+                ).delete(synchronize_session=False)
             
             if squad_numbers:
                 # 6. Обновляем уроки, связанные с взводами
-                cursor.execute("""
-                    UPDATE lessons 
-                    SET squad = NULL
-                    WHERE squad IN ({})
-                """.format(','.join('?' * len(squad_numbers))), squad_numbers)
-                print(f"✅ Обновлено уроков взводов: {cursor.rowcount}")
+                db.query(models.Lesson).filter(
+                    models.Lesson.squad.in_(squad_numbers)
+                ).update({"squad": None}, synchronize_session=False)
                 
                 # 7. Удаляем взводы
-                cursor.execute("""
-                    DELETE FROM squads 
-                    WHERE number IN ({})
-                """.format(','.join('?' * len(squad_numbers))), squad_numbers)
-                print(f"✅ Удалено взводов: {cursor.rowcount}")
+                db.query(models.Squad).filter(
+                    models.Squad.number.in_(squad_numbers)
+                ).delete(synchronize_session=False)
             
             # 8. Удаляем саму кафедру
-            cursor.execute("DELETE FROM departments WHERE id = ?", (department_id,))
-            
-            conn.commit()
+            db.delete(department)
+            db.commit()
             
         except Exception as e:
-            conn.rollback()
+            db.rollback()
             raise
         
-        conn.close()
-        
-        department_name = department["name"]
+        department_name = department.name
         return {"success": True, "message": f"Кафедра '{department_name}' и все связанные данные удалены"}
         
     except HTTPException:
@@ -3801,7 +2518,6 @@ def delete_department(department_id: int):
     except Exception as e:
         print(f"❌ Ошибка удаления кафедры: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка удаления кафедры: {str(e)}")
-
 
 # Запуск сервера
 if __name__ == "__main__":
