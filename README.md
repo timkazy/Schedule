@@ -61,7 +61,7 @@ npm run dev
   2. `git pull origin main` - актуализировать main, чтобы избежать конфликтов.
   3. `git checkout <ветка>` - переключиться на свою ветку.
   4. `git merge main` - слияние с main. Если возникнут конфликты - разрешить вручную. 
-  5. `git pull origin <ветка>` - отправить в github.
+  5. `git push origin <ветка>` - отправить в github.
   6. Создать Pull-request
   7. `git checkout main` - переключиться на ветку main если еще не здесь.
   8. `git branch -d <ветка>` - удалить ветку локально.
