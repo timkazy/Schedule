@@ -9,11 +9,6 @@ class LessonType(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
 
-class Holiday(Base):
-    __tablename__ = "holidays"
-    
-    day = Column(String, primary_key=True)
-
 class StartEndDate(Base):
     __tablename__ = "start_end_dates"
     
@@ -31,6 +26,11 @@ class Department(Base):
     # Relationships
     squads = relationship("Squad", back_populates="department")
     subject_loads = relationship("SubjectLoad", back_populates="department")
+
+class Holiday(Base):
+    __tablename__ = "holidays"
+
+    day = Column(String, primary_key=True)
 
 class Audience(Base):
     __tablename__ = "audiences"

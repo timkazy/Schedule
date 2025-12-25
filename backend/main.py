@@ -1,3 +1,5 @@
+# backend/main.py
+
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -9,7 +11,7 @@ import traceback
 
 from repository import crud, schemas, models, database
 from repository.database import get_db, create_tables
-from repository.initializer import init_database
+from repository.initializer import init_database 
 
 # Включите логирование SQL запросов
 import logging
@@ -29,7 +31,7 @@ app = FastAPI(title="Schedule API", version="1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:8000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -391,12 +393,12 @@ def update_platoon(platoon_number: str, data: dict, db: Session = Depends(get_db
             if can_shift:
                 # Можем просто сдвинуть занятия
                 week_shift = new_start_week - old_start_week
-                print(f"↕️ Сдвигаем занятия на {week_shift} недель")
+                print(f"Сдвигаем занятия на {week_shift} недель")
                 shift_squad_lessons(db, platoon_number, week_shift)
                 
                 # Если end_week изменился, добавляем или удаляем занятия
                 if end_week_changed:
-                    print("🔧 Корректируем занятия из-за изменения end_week")
+                    print("Корректируем занятия из-за изменения end_week")
                     
                     # Получаем текущие даты после сдвига
                     result = db.execute(text("""
@@ -444,7 +446,7 @@ def update_platoon(platoon_number: str, data: dict, db: Session = Depends(get_db
                         """), {"squad": platoon_number, **{f"p{i}": date for i, date in enumerate(dates_to_remove)}})
                         print(f"🗑️ Удалено занятий в {len(dates_to_remove)} дней")
                     
-                    print(f"➕ Добавлено занятий в {len(dates_to_add)} дней")
+                    print(f"Добавлено занятий в {len(dates_to_add)} дней")
                     
             else:
                 # Нельзя сдвинуть - пересоздаем полностью
@@ -1679,6 +1681,19 @@ def update_hour_load_audiences_api(
         print(f"❌ Ошибка обновления аудиторий: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка обновления аудиторий: {str(e)}")
 
+# Holidays
+@app.get("/settings/get_holidays")
+def get_all_holidays(db: Session = Depends(get_db)):
+    return crud.get_all_holidays(db)
+
+@app.post("/settings/save_holiday")
+def save_holiday(day: dict, db: Session = Depends(get_db)):
+    return crud.save_holiday(db, day)
+
+@app.delete("/settings/delete_holiday")
+def delete_holiday(day: dict, db: Session = Depends(get_db)):
+    return crud.delete_holiday(db, day)
+
 # ------------------------ TEACHERS ------------------------
 @app.get("/teachers", response_model=List[schemas.Officer])
 def get_teachers_api(db: Session = Depends(get_db)):
@@ -2092,7 +2107,7 @@ def get_subject_details_api(subject_id: int, db: Session = Depends(get_db)):
 def add_subject_api(data: dict, db: Session = Depends(get_db)):
     """Добавить новый предмет"""
     try:
-        print(f"➕ Добавление нового предмета: {data}")
+        print(f"Добавление нового предмета: {data}")
         
         name = data.get("name", "").strip()
         

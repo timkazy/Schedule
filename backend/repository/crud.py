@@ -280,6 +280,32 @@ def get_schedule(db: Session):
     
     return result
 
+def get_all_holidays(db:Session):
+    return db.query(models.Holiday).all()
+
+def save_holiday(db: Session, data: dict):
+    try:
+        day = data.get("day")
+        new_day = models.Holiday(day = day)
+        db.add(new_day) # Аналог db.query().all().insert(new_day)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        return None
+    return new_day
+
+def delete_holiday(db: Session, data: dict):
+    try:
+        day = data.get("day")
+        deleted = db.query(models.Holiday).filter(models.Holiday.day == day).delete()
+        db.commit()
+        return deleted
+    
+    except Exception as e:
+        db.rollback()
+        return None
+
+
 def save_cell_data(db: Session, data: dict):
     """Обновить данные ячейки расписания"""
     lesson_id = data.get("lesson_id")

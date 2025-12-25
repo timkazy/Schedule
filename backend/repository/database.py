@@ -15,7 +15,7 @@ DATABASE_URL = f"sqlite:///{db_path}"
 engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False},
-    echo=False  # Поставьте True для отладки SQL запросов
+    echo=False
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

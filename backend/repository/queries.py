@@ -80,12 +80,29 @@ def get_input_data():
     """
     Returns:
         dict: {
-            номер_взвода: {
-                название_предмета: {
-                    'Аудитории': {номер_аудитории: тип_занятия, ...},
-                    'Офицеры': [id_офицера, ...],
-                    'Подтемы': ['тема.подтема', ...]
+            день_недели: {
+                номер_взвода: {
+                    название_предмета: {
+                        'Аудитории': {номер_аудитории: тип_занятия, ...},
+                        'Офицеры': [id_офицера, ...],
+                        'Подтемы': ['тема.подтема', ...]
+                    },
+                    название_предмета2: {
+                        'Аудитории': {номер_аудитории: тип_занятия, ...},
+                        'Офицеры': [id_офицера, ...],
+                        'Подтемы': ['тема.подтема', ...]
+                    }
+                },
+                номер_взвода2: {
+                    название_предмета: {
+                        'Аудитории': {номер_аудитории: тип_занятия, ...},
+                        'Офицеры': [id_офицера, ...],
+                        'Подтемы': ['тема.подтема', ...]
+                    }
                 }
+            },
+            день_недели2: {
+                ...
             }
         }
     """
@@ -114,6 +131,7 @@ def get_input_data():
                 FROM themes t
             )
             SELECT 
+                sq.day as squad_day,  -- Добавляем день недели взвода
                 sq.number as squad_number,
                 subj.name as subject_name,
                 od.officers as officers_list,
@@ -127,56 +145,70 @@ def get_input_data():
             LEFT JOIN officer_data od ON od.squad = sq.number AND od.subject_load_id = sl.id
             LEFT JOIN audience_data aud ON aud.subject_load_id = sl.id
             LEFT JOIN theme_data th ON th.subject_load_id = sl.id
-            ORDER BY sq.number, subj.name
+            WHERE sq.day IS NOT NULL  -- Только взводы с указанным днем недели
+            ORDER BY sq.day, sq.number, subj.name
         """)
         
         rows = cursor.fetchall()
         
         result = {}
         for row in rows:
-            squad = row[0]
-            subject = row[1]
-            officers_str = row[2] or ""
-            audiences_str = row[3] or ""
-            lesson_type = row[4] or ""
-            theme = row[5] or ""
+            day = row[0]  # День недели (1-7)
+            squad = row[1]
+            subject = row[2]
+            officers_str = row[3] or ""
+            audiences_str = row[4] or ""
+            lesson_type = row[5] or ""
+            theme = row[6] or ""
             
-            if squad not in result:
-                result[squad] = {}
-            if subject not in result[squad]:
-                result[squad][subject] = {
+            # Инициализируем структуру для дня
+            if day not in result:
+                result[day] = {}
+            
+            # Инициализируем структуру для взвода в этом дне
+            if squad not in result[day]:
+                result[day][squad] = {}
+            
+            # Инициализируем структуру для предмета
+            if subject not in result[day][squad]:
+                result[day][squad][subject] = {
                     'Аудитории': {},
                     'Офицеры': set(),
                     'Подтемы': set()
                 }
             
+            # Обрабатываем офицеров
             if officers_str:
                 officers = [int(o.strip()) for o in officers_str.split('/') if o.strip()]
                 for officer_id in officers:
-                    result[squad][subject]['Офицеры'].add(officer_id)
+                    result[day][squad][subject]['Офицеры'].add(officer_id)
             
+            # Обрабатываем аудитории
             if audiences_str and lesson_type:
                 audiences = [a.strip() for a in audiences_str.split('/') if a.strip()]
                 for audience in audiences:
                     if audience.isdigit():
                         aud_num = int(audience)
-                        if aud_num in result[squad][subject]['Аудитории']:
-                            current_types = result[squad][subject]['Аудитории'][aud_num]
+                        if aud_num in result[day][squad][subject]['Аудитории']:
+                            current_types = result[day][squad][subject]['Аудитории'][aud_num]
                             if isinstance(current_types, list):
                                 if lesson_type not in current_types:
                                     current_types.append(lesson_type)
                             elif current_types != lesson_type:
-                                result[squad][subject]['Аудитории'][aud_num] = [current_types, lesson_type]
+                                result[day][squad][subject]['Аудитории'][aud_num] = [current_types, lesson_type]
                         else:
-                            result[squad][subject]['Аудитории'][aud_num] = lesson_type
+                            result[day][squad][subject]['Аудитории'][aud_num] = lesson_type
             
+            # Обрабатываем подтемы
             if theme:
-                result[squad][subject]['Подтемы'].add(theme)
+                result[day][squad][subject]['Подтемы'].add(theme)
         
-        for squad in result:
-            for subject in result[squad]:
-                result[squad][subject]['Офицеры'] = sorted(list(result[squad][subject]['Офицеры']))
-                result[squad][subject]['Подтемы'] = sorted(list(result[squad][subject]['Подтемы']))
+        # Преобразуем множества в списки для каждого дня
+        for day in result:
+            for squad in result[day]:
+                for subject in result[day][squad]:
+                    result[day][squad][subject]['Офицеры'] = sorted(list(result[day][squad][subject]['Офицеры']))
+                    result[day][squad][subject]['Подтемы'] = sorted(list(result[day][squad][subject]['Подтемы']))
         
         return result
         
