@@ -1,8 +1,11 @@
 import { createContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useContext } from "react";
 import { tablesData } from "../data/tablesData";
 import { scheduleApi } from "../api/api";
 import { localDropdownData } from "../data/localDropdownData";
 import { appConfig, isLocalMode } from "../config/appConfig";
+
+import { AuthContext } from "./AuthContext"
 
 export const EditContext = createContext();
 
@@ -10,12 +13,12 @@ export const EditProvider = ({ children }) => {
   const [scheduleData, setScheduleData] = useState([]);
   const [dataSource, setDataSource] = useState(appConfig.dataSource); // состояние режима
 
-  const [selectedDay, setSelectedDay] = useState(0); 
+  const { isTeacher } = useContext(AuthContext); // Получаем из AuthContext
 
+  const [selectedDay, setSelectedDay] = useState(0); 
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationMessage, setGenerationMessage] = useState(null);
-
 
   const [dropdownData, setDropdownData] = useState({
     subjects: [],
@@ -562,8 +565,16 @@ const handleDayChange = useCallback((dayId) => {
           setHasChanges(false);
           break;
 
-
         case "magic":
+          if (!isTeacher) {
+            console.warn("❌ Только преподаватели могут генерировать расписание");
+            setGenerationMessage({
+              type: 'error',
+              text: 'Только преподаватели могут генерировать расписание'
+            });
+            return;
+          }
+          
           const generateSchedule = async () => {
             setIsGenerating(true);
             setGenerationMessage(null);
@@ -605,7 +616,7 @@ const handleDayChange = useCallback((dayId) => {
 
       }
     },
-    [selectedCells, copiedCell, selectedCount, getCellValue, updateCellValue, activeTableId, selectedDay, fetchSchedule]
+    [selectedCells, copiedCell, selectedCount, getCellValue, updateCellValue, activeTableId, selectedDay, fetchSchedule, isTeacher]
   );
 
   handleActionRef.current = handleAction;

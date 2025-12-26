@@ -1,5 +1,5 @@
-from pydantic import BaseModel, ConfigDict
-from datetime import date
+from pydantic import BaseModel, ConfigDict, EmailStr
+from datetime import date, datetime
 from typing import Optional, List
 
 # Базовые схемы
@@ -179,3 +179,46 @@ class AudienceDetails(Audience):
     lessons_count: int = 0
     last_lesson_date: Optional[date] = None
     hour_loads: List[dict] = []
+
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    role: str
+    user_id: int
+    username: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+    user_id: Optional[int] = None
+    role: Optional[str] = None
+
+class UserBase(BaseModel):
+    username: str
+    email: Optional[EmailStr] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    middle_name: Optional[str] = None
+
+class UserCreate(UserBase):
+    password: str
+    role_id: int
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserInDB(UserBase):
+    id: int
+    role_id: int
+    is_active: bool
+
+class RoleBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class RoleInDB(RoleBase):
+    id: int

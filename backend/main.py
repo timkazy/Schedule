@@ -1,6 +1,6 @@
 # backend/main.py
 
-from fastapi import FastAPI, HTTPException, Query, Depends
+from fastapi import FastAPI, HTTPException, Query, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text 
@@ -13,6 +13,10 @@ from repository import crud, schemas, models, database
 from repository.database import get_db, create_tables
 from repository.initializer import init_database
 from repository.scheduling import generate_and_save_schedule, WeekScheduler
+
+from repository import auth, crud, schemas
+from repository.database import get_db
+from repository.auth import get_current_user, get_current_teacher, get_current_student
 
 # Включите логирование SQL запросов
 import logging
@@ -55,6 +59,52 @@ def convert_date_format(date_str: str) -> str:
         return f"{year}-{int(month):02d}-{int(day):02d}"
     except:
         return date_str
+
+# Эндпоинты аутентификации
+@app.post("/auth/login", response_model=schemas.Token)
+def login(user_data: schemas.UserLogin, db: Session = Depends(get_db)):
+    """Вход в систему"""
+    print("1")
+
+    user = crud.authenticate_user(db, user_data.username, user_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверное имя пользователя или пароль"
+        )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Пользователь не активен"
+        )
+    
+    # Создаем токен
+    access_token_expires = timedelta(minutes=crud.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = crud.create_access_token(
+        data={"sub": user.username},
+        expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": user.role.name,
+        "user_id": user.id,
+        "username": user.username,
+        "first_name": user.first_name,
+        "last_name": user.last_name
+    }
+
+@app.post("/auth/logout")
+def logout():
+    """Выход из системы (на клиенте просто удаляем токен)"""
+    return {"message": "Успешный выход из системы"}
+
+@app.get("/auth/me", response_model=schemas.UserInDB)
+def get_current_user_info(current_user = Depends(get_current_user)):
+    """Получить информацию о текущем пользователе"""
+    return current_user
 
 # ---------------------------------------------------------------------------
 # 🔹 GET /subjects
@@ -170,7 +220,9 @@ def save_cell(data: dict, db: Session = Depends(get_db)):
 @app.get("/health")
 def health_check(db: Session = Depends(get_db)):
     try:
-        db.execute("SELECT 1")
+        # Используйте text() для SQL выражений
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
@@ -2540,10 +2592,12 @@ def generate_schedule_api(
     day: Optional[int] = Query(None),
     strategy: str = Query("upsert", regex="^(upsert|replace|update)$"),
     academic_year: Optional[int] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_teacher)
 ):
     """Запустить генерацию расписания"""
     try:
+        print(f"👤 Пользователь {current_user.username} запускает генерацию")
         # Определяем дату начала учебного года
         academic_year_start = None
         if academic_year:

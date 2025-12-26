@@ -1,27 +1,40 @@
 from sqlalchemy.orm import Session
 from .database import engine, SessionLocal
-from .models import Base, LessonType, Department, SquadType, Audience, Subject, Officer, StartEndDate, Holiday
+from .models import Base, LessonType, Department, SquadType, Audience, Subject, Officer, StartEndDate, Holiday, Role, User
+from passlib.context import CryptContext
+import logging
+
+# Настройка хэширования паролей
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Логирование
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def init_database():
     """Инициализация базы данных - создание таблиц и заполнение начальными данными"""
     # Создаем таблицы
     Base.metadata.create_all(bind=engine)
+    logger.info("✅ Все таблицы созданы")
     
     db = SessionLocal()
     try:
         # Заполняем начальные данные, если таблицы пустые
         fill_initial_data(db)
+        initialize_roles_and_users(db)
         db.commit()
-        print("✅ База данных инициализирована")
+        logger.info("✅ База данных полностью инициализирована")
     except Exception as e:
         db.rollback()
-        print(f"❌ Ошибка при инициализации БД: {e}")
+        logger.error(f"❌ Ошибка при инициализации БД: {e}")
+        logger.error("Подробности:", exc_info=True)
         raise
     finally:
         db.close()
 
 def fill_initial_data(db: Session):
     """Заполнение начальных данных"""
+    logger.info("🔧 Заполнение начальных данных...")
     
     # 1. Типы занятий
     lesson_types = [
@@ -35,6 +48,7 @@ def fill_initial_data(db: Session):
         if not db.query(LessonType).filter(LessonType.id == lt_data["id"]).first():
             lesson_type = LessonType(**lt_data)
             db.add(lesson_type)
+    logger.info(f"✅ Добавлено типов занятий: {len(lesson_types)}")
     
     # 2. Кафедры
     departments = [
@@ -49,6 +63,7 @@ def fill_initial_data(db: Session):
         if not db.query(Department).filter(Department.id == dept_data["id"]).first():
             department = Department(**dept_data)
             db.add(department)
+    logger.info(f"✅ Добавлено кафедр: {len(departments)}")
     
     # 3. Типы взводов
     squad_types = [
@@ -66,6 +81,7 @@ def fill_initial_data(db: Session):
         if not db.query(SquadType).filter(SquadType.id == st_data["id"]).first():
             squad_type = SquadType(**st_data)
             db.add(squad_type)
+    logger.info(f"✅ Добавлено типов взводов: {len(squad_types)}")
     
     # 4. Аудитории
     audiences_data = [208, 210, 227, 305, 110, 104, 209, 313, 212, 123, 226]
@@ -73,6 +89,7 @@ def fill_initial_data(db: Session):
         if not db.query(Audience).filter(Audience.number == aud_num).first():
             audience = Audience(number=aud_num)
             db.add(audience)
+    logger.info(f"✅ Добавлено аудиторий: {len(audiences_data)}")
     
     # 5. Предметы
     subjects = [
@@ -88,6 +105,7 @@ def fill_initial_data(db: Session):
         if not db.query(Subject).filter(Subject.id == subj_data["id"]).first():
             subject = Subject(**subj_data)
             db.add(subject)
+    logger.info(f"✅ Добавлено предметов: {len(subjects)}")
     
     # 6. Преподаватели
     officers = [
@@ -122,6 +140,7 @@ def fill_initial_data(db: Session):
         if not db.query(Officer).filter(Officer.id == officer_data["id"]).first():
             officer = Officer(**officer_data)
             db.add(officer)
+    logger.info(f"✅ Добавлено преподавателей: {len(officers)}")
     
     # 7. Даты начала/окончания семестров
     start_end_dates = [
@@ -131,5 +150,102 @@ def fill_initial_data(db: Session):
         if not db.query(StartEndDate).filter(StartEndDate.start_0 == date_data["start_0"]).first():
             date_record = StartEndDate(**date_data)
             db.add(date_record)
+    logger.info(f"✅ Добавлено дат семестров: {len(start_end_dates)}")
     
-    print("✅ Начальные данные заполнены")
+    logger.info("✅ Все начальные данные заполнены")
+
+
+def initialize_roles_and_users(db: Session):
+    """Инициализация ролей и пользователей"""
+    logger.info("👥 Инициализация ролей и пользователей...")
+    
+    # 1. Создаем роли
+    roles_data = [
+        {"name": "student", "description": "Студент/Курсант - просмотр расписания"},
+        {"name": "teacher", "description": "Преподаватель - полный доступ к редактированию"},
+    ]
+    
+    created_roles = {}
+    for role_data in roles_data:
+        existing_role = db.query(Role).filter(Role.name == role_data["name"]).first()
+        if not existing_role:
+            role = Role(**role_data)
+            db.add(role)
+            db.flush()
+            created_roles[role_data["name"]] = role
+            logger.info(f"   ✅ Создана роль: {role_data['name']}")
+        else:
+            created_roles[role_data["name"]] = existing_role
+    
+    db.flush()
+    
+    # 2. Создаем тестовых пользователей
+    test_users = [
+        {
+            "username": "admin",
+            "email": "admin@example.com",
+            "password": "admin123",  # 8 символов
+            "first_name": "Admin",
+            "last_name": "System",
+            "role_name": "teacher"
+        },
+        {
+            "username": "teacher",
+            "email": "teacher@example.com",
+            "password": "teach123",  # 8 символов
+            "first_name": "Teacher",
+            "last_name": "Teacher",
+            "role_name": "teacher"
+        },
+        {
+            "username": "student",
+            "email": "student@example.com",
+            "password": "stud123",  # 7 символов
+            "first_name": "Student",
+            "last_name": "Student",
+            "role_name": "student"
+        }
+    ]
+    
+    for user_data in test_users:
+        existing_user = db.query(User).filter(User.username == user_data["username"]).first()
+        if not existing_user:
+            # Проверяем длину пароля в байтах
+            password = user_data["password"]
+            password_bytes = password.encode('utf-8')
+            
+            if len(password_bytes) > 72:
+                # Усекаем пароль до 72 байтов
+                password = password_bytes[:72].decode('utf-8', errors='ignore')
+                logger.warning(f"   ⚠️ Пароль усечен для {user_data['username']}")
+            
+            # Хэшируем пароль
+            hashed_password = pwd_context.hash(password)
+            
+            # Получаем роль
+            role = created_roles.get(user_data["role_name"])
+            if not role:
+                logger.warning(f"   ⚠️ Роль {user_data['role_name']} не найдена")
+                continue
+            
+            # Создаем пользователя
+            user = User(
+                username=user_data["username"],
+                email=user_data["email"],
+                password_hash=hashed_password,
+                first_name=user_data["first_name"],
+                last_name=user_data["last_name"],
+                role_id=role.id,
+                is_active=True
+            )
+            db.add(user)
+            logger.info(f"   ✅ Создан пользователь: {user_data['username']}")
+        else:
+            logger.info(f"   ⏭️ Пользователь уже существует: {user_data['username']}")
+    
+    logger.info("✅ Роли и пользователи инициализированы")
+    
+    # Выводим сводную информацию
+    roles_count = db.query(Role).count()
+    users_count = db.query(User).count()
+    logger.info(f"📊 Статистика: ролей - {roles_count}, пользователей - {users_count}")

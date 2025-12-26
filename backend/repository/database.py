@@ -35,6 +35,7 @@ from .models import Base
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
+    print("✅ Все таблицы созданы/проверены")
 
 # Функция для конвертации строк в списки
 def string_to_list(value: str) -> list:
