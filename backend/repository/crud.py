@@ -156,23 +156,28 @@ def get_schedule(db: Session):
     ).distinct().order_by(models.Squad.day, models.Squad.number).all()
     
     result = []
-    day_counter = 1
-    current_day = None
-    day_platoons = []
+    processed_days = set()
     
     for squad in squads:
         platoon_id = squad.platoonId
-        day_name = squad.day
+        day_value = squad.day
         
-        if day_name != current_day:
-            if current_day is not None:
-                result.append({
-                    "dayId": day_counter,
-                    "platoons": day_platoons.copy()
-                })
-                day_counter += 1
-                day_platoons = []
-            current_day = day_name
+        # Проверяем, есть ли уже день в результате
+        day_exists = False
+        for day_data in result:
+            if day_data["dayId"] == day_value:
+                day_exists = True
+                day_platoons = day_data["platoons"]
+                break
+        
+        # Если день еще не добавлен, создаем новую запись
+        if not day_exists:
+            result.append({
+                "dayId": day_value,  # Используем непосредственно day как dayId
+                "platoons": []
+            })
+            day_platoons = result[-1]["platoons"]
+            processed_days.add(day_value)
         
         # INFO: предметы и аудитории - используем сырые запросы
         info_rows = db.execute(text("""
@@ -269,14 +274,14 @@ def get_schedule(db: Session):
             "columns": list(columns_map.values())
         }
         
-        day_platoons.append(platoon_obj)
+        # Добавляем взвод к соответствующему дню
+        for day_data in result:
+            if day_data["dayId"] == day_value:
+                day_data["platoons"].append(platoon_obj)
+                break
     
-    # Добавляем последний день
-    if day_platoons:
-        result.append({
-            "dayId": day_counter,
-            "platoons": day_platoons
-        })
+    # Сортируем результат по dayId
+    result.sort(key=lambda x: x["dayId"])
     
     return result
 

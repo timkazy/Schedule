@@ -68,6 +68,33 @@ export const scheduleApi = {
     return response.json();
   },
 
+  async generateSchedule(day = null) {
+    try {
+      const url = `${API_BASE}/schedule/generate`;
+      const params = new URLSearchParams();
+      if (day !== null) {
+        params.append('day', day);
+      }
+      // strategy и academic_year по умолчанию не отправляем
+      
+      const response = await fetch(`${url}?${params.toString()}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Ошибка HTTP: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Ошибка генерации расписания:', error);
+      throw error;
+    }
+  },
+
   async saveCell(data) {
     const response = await fetch(`${API_BASE}/schedule/savecell`, {
       method: 'POST',

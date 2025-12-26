@@ -7,21 +7,15 @@ import EditMenu from "../components/menu/EditMenu";
 
 function Schedule() {
   const {
-    scheduleData,
+    filteredScheduleData,
     isEditing,
     activeTableId,
   } = useEdit();
 
-  const [activeDay, setActiveDay] = useState(0);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const dayTables =
-    activeDay === 0
-      ? scheduleData
-        .filter(day => day.dayId >= 1 && day.dayId <= 7)
-        .sort((a, b) => a.dayId - b.dayId)
-        .flatMap(day => day.platoons)
-      : scheduleData.find(day => day.dayId === activeDay)?.platoons || [];
+  // Убираем dayTables, используем только filteredScheduleData
+  const hasData = filteredScheduleData && filteredScheduleData.length > 0;
 
   const toggleCollapseAll = () => {
     setIsCollapsed(!isCollapsed);
@@ -30,15 +24,6 @@ function Schedule() {
   const handlePrint = () => {
     window.print();
   };
-
-  // Функция для получения названия дня недели
-  // const getDayName = (dayId) => {
-  //   const days = [
-  //     "Воскресенье", "Понедельник", "Вторник", "Среда", 
-  //     "Четверг", "Пятница", "Суббота"
-  //   ];
-  //   return days[dayId] || "Выбранный день";
-  // };
 
   return (
     <>
@@ -51,7 +36,7 @@ function Schedule() {
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             {/* Левая часть - кнопка скрытия/показа */}
             <div className="w-32 flex justify-start">
-              {dayTables.length > 0 && (
+              {hasData && (
                 <button
                   onClick={toggleCollapseAll}
                   className="px-3 py-1 bg-green-500 text-white rounded-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-150 flex items-center gap-2"
@@ -75,9 +60,7 @@ function Schedule() {
 
             {/* Центральная часть - селектор дня */}
             <div className="flex-1 flex justify-center">
-              {!isEditing &&
-                <DaySelector selectedDay={activeDay} setSelectedDay={setActiveDay} />
-              }
+              <DaySelector />
             </div>
 
             {/* Правая часть - кнопка печати */}
@@ -101,24 +84,26 @@ function Schedule() {
 
         {/* Основной контент */}
         <div className="min-h-[400px]">
-          {dayTables.length > 0 ? (
-            // Если есть таблицы для отображения
+          {hasData ? (
+            // Если есть данные для отображения
             <div className="flex flex-col items-center space-y-8 mt-5">
-              {dayTables.map((table) => (
-                <div key={table.id} className="w-full max-w-6xl">
-                  <Table
-                    isEditing={isEditing}
-                    columnsData={table.columns}
-                    infoData={table.info || []}
-                    activeTableId={activeTableId}
-                    platoonId={table.platoonId}
-                    isCollapsed={isCollapsed}
-                  />
-                </div>
+              {filteredScheduleData.map((day) => (
+                day.platoons?.map((table) => (
+                  <div key={`${day.dayId}-${table.platoonId}`} className="w-full max-w-6xl">
+                    <Table
+                      isEditing={isEditing}
+                      columnsData={table.columns}
+                      infoData={table.info || []}
+                      activeTableId={activeTableId}
+                      platoonId={table.platoonId}
+                      isCollapsed={isCollapsed}
+                    />
+                  </div>
+                ))
               ))}
             </div>
           ) : (
-            // Если нет таблиц для отображения
+            // Если нет данных для отображения
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
               <div className="text-gray-500 mb-4">
                 <svg
@@ -138,11 +123,6 @@ function Schedule() {
               <h2 className="text-2xl font-bold text-gray-700 mb-2">
                 Нет взводов, учащихся в этот день недели
               </h2>
-              {/* <p className="text-gray-600 max-w-md"> */}
-                {/* {activeDay === 0  */}
-                  {/* ? "На всю неделю не найдено расписания для взводов."  */}
-                  {/* : `В ${getDayName(activeDay)} нет взводов с занятиями.`} */}
-              {/* </p> */}
               <p className="text-gray-500 mt-4 text-sm">
                 Выберите другой день недели или проверьте наличие данных в системе.
               </p>
