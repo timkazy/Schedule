@@ -802,3 +802,25 @@ def get_teacher_details(db: Session, teacher_id: int):
     }
     
     return result
+
+def create_lesson(db: Session, data: dict):
+    """Создать занятие"""
+    lesson = models.Lesson(**data)
+    db.add(lesson)
+    db.commit()
+    db.refresh(lesson)
+    return lesson
+
+def update_lesson_full(db: Session, lesson_id: int, data: dict):
+    """Обновить все поля занятия"""
+    lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
+    if not lesson:
+        return None
+    
+    for key, value in data.items():
+        if value is not None:
+            setattr(lesson, key, value)
+    
+    db.commit()
+    db.refresh(lesson)
+    return lesson

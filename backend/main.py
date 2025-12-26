@@ -11,12 +11,13 @@ import traceback
 
 from repository import crud, schemas, models, database
 from repository.database import get_db, create_tables
-from repository.initializer import init_database 
+from repository.initializer import init_database
+from repository.scheduling import generate_and_save_schedule, WeekScheduler
 
 # Включите логирование SQL запросов
 import logging
 logging.basicConfig()
-logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 import calendar
 from repository.schedule_generator import (
@@ -2533,6 +2534,43 @@ def delete_department_api(department_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         print(f"❌ Ошибка удаления кафедры: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка удаления кафедры: {str(e)}")
+
+@app.post("/schedule/generate")
+def generate_schedule_api(
+    day: Optional[int] = Query(None),
+    strategy: str = Query("upsert", regex="^(upsert|replace|update)$"),
+    academic_year: Optional[int] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """Запустить генерацию расписания"""
+    try:
+        # Определяем дату начала учебного года
+        academic_year_start = None
+        if academic_year:
+            academic_year_start = datetime(academic_year, 9, 1)
+        
+        # Вызываем функцию генерации
+        result = generate_and_save_schedule(
+            db_session=db,
+            day=day,
+            strategy=strategy,
+            academic_year_start=academic_year_start
+        )
+        
+        if result.get("success", False):
+            return {
+                "success": True,
+                "message": "Расписание успешно сгенерировано и сохранено",
+                "details": result
+            }
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Ошибка: {result.get('error', 'Неизвестная ошибка')}"
+            )
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка: {str(e)}")
 
 # Запуск сервера
 if __name__ == "__main__":
