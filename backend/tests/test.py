@@ -6,7 +6,7 @@ import string
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 
-BASE_URL = "http://192.168.0.6:8000"
+BASE_URL = "http://localhost:8000"
 
 @pytest.fixture(scope="session")
 def api_client():

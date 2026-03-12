@@ -302,7 +302,7 @@ class WeekScheduler:
                 self.officer_mapping[short_name] = officer_id
                 self.officer_mapping[f"{first_name}_{surname}"] = officer_id
             
-            print(f"👨‍🏫 Загружено {len(officers)} офицеров из БД")
+            print(f"Загружено {len(officers)} офицеров из БД")
             
         except Exception as e:
             print(f"❌ Ошибка при загрузке офицеров: {e}")
@@ -608,9 +608,9 @@ class WeekScheduler:
             teacher_id = {t: idx for idx, t in enumerate(all_teachers)}
             room_id = {r: idx for idx, r in enumerate(all_rooms)}
             
-            print(f"👨‍🏫 Все преподаватели: {len(all_teachers)}")
-            print(f"🏫 Все аудитории: {len(all_rooms)}")
-            print(f"📚 Все предметы: {len(all_subjects)}")
+            print(f"Все преподаватели: {len(all_teachers)}")
+            print(f"Все аудитории: {len(all_rooms)}")
+            print(f"Все предметы: {len(all_subjects)}")
             
             # === 2. МОДЕЛЬ ===
             model = cp_model.CpModel()

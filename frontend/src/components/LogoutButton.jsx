@@ -13,7 +13,7 @@ function LogoutButton() {
             {user?.first_name} {user?.last_name}
           </div>
           <div className="text-xs text-gray-500">
-            {user?.role === "teacher" ? "👨‍🏫 Преподаватель" : "👨‍🎓 Студент"}
+            {user?.role === "teacher" ? "Преподаватель" : "Студент"}
           </div>
         </div>
         

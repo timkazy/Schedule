@@ -6,7 +6,7 @@ export const appConfig = {
   
   // Настройки сервера
   server: {
-    baseUrl: 'http://192.168.0.6:8000',
+    baseUrl: 'http://localhost:8000',
     timeout: 3000, // 5 секунд
   },
   

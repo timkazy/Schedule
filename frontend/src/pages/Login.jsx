@@ -89,9 +89,8 @@ function Login() {
             <div className="text-sm">
               <span className="text-gray-500">Тестовые пользователи:</span>
               <div className="text-xs text-gray-400 mt-1">
-                <div>👨‍🏫 teacher/teach123</div>
-                <div>👨‍🎓 student/stud123</div>
-                <div>👑 admin/admin123</div>
+                <div>teacher/teach123</div>
+                <div>student/stud123</div>
               </div>
             </div>
           </div>
