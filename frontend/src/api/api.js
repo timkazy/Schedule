@@ -68,6 +68,55 @@ export const scheduleApi = {
     return response.json();
   },
 
+  async generateSchedule(day = null) {
+    try {
+      const url = `${API_BASE}/schedule/generate`;
+      const params = new URLSearchParams();
+      if (day !== null) {
+        params.append('day', day);
+      }
+      
+      // Получаем токен из localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Токен авторизации не найден');
+      }
+      
+      console.log(`📤 Отправка запроса на генерацию, день: ${day}, токен: ${token.substring(0, 20)}...`);
+      
+      const response = await fetch(`${url}?${params.toString()}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,  // ← ВАЖНО: добавляем токен
+        },
+      });
+      
+      console.log(`📥 Ответ сервера: ${response.status} ${response.statusText}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Ошибка сервера: ${errorText}`);
+        
+        if (response.status === 401) {
+          throw new Error('Ошибка авторизации. Возможно, сессия истекла. Войдите заново.');
+        } else if (response.status === 403) {
+          throw new Error('У вас недостаточно прав для выполнения этого действия');
+        }
+        
+        throw new Error(`Ошибка HTTP: ${response.status} - ${errorText}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ Результат генерации:', result);
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Ошибка генерации расписания:', error);
+      throw error;
+    }
+  },
+
   async saveCell(data) {
     const response = await fetch(`${API_BASE}/schedule/savecell`, {
       method: 'POST',

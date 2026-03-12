@@ -15,7 +15,7 @@ DATABASE_URL = f"sqlite:///{db_path}"
 engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False},
-    echo=False  # Поставьте True для отладки SQL запросов
+    echo=False
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -35,6 +35,7 @@ from .models import Base
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
+    print("✅ Все таблицы созданы/проверены")
 
 # Функция для конвертации строк в списки
 def string_to_list(value: str) -> list:

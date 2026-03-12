@@ -1,5 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEdit } from "../../context/useEdit";
+import { useContext } from "react";
+import { AuthContext } from "../../context/AuthContext";
 // import { exportToExcel } from '../../utils/excelExport';
 
 // Импорт иконок
@@ -18,25 +20,9 @@ import printIcon from "../../assets/icons/print.svg";
 function Menu() {
     const location = useLocation();
     const { isEditing, hasChanges, setIsEditing, setHasChanges, scheduleData, isAdding, setIsAdding } = useEdit();
-
-    const navigationGroups = [
-        [
-            { id: 1, name: "Таблица", icon: tableIcon, link: "/", type: "link" },
-            { id: 2, name: "Нагрузки", icon: subjectLoadIcon, link: "/disciplines", type: "link" },
-            { id: 3, name: "Взвода", icon: platoonIcon, link: "/platoons", type: "link" },
-            { id: 4, name: "Кафедры", icon: departmentsIcon, link: "/departments", type: "link" },
-        ],
-        [
-            { id: 5, name: "Офицеры", icon: officerIcon, link: "/teachers", type: "link" },
-            { id: 6, name: "Предметы", icon: subjectIcon, link: "/subjects", type: "link" },
-            { id: 7, name: "Аудитории", icon: audienceIcon, link: "/audience", type: "link" },
-        ],
-        // [
-        // { id: 8, name: "Настройки", icon: settingsIcon, link: "/settings", type: "link" },
-        // ],
-    ];
-
-    const actionGroups = [
+    const { isTeacher } = useContext(AuthContext);
+    
+    const actionGroups = isTeacher() ? [
         [
             {
                 id: "add",
@@ -52,7 +38,6 @@ function Menu() {
                 action: () => setIsEditing((prev) => !prev),
                 type: "button",
             },
-
         ],
         // [
         //     {
@@ -80,7 +65,43 @@ function Menu() {
         //         type: "button",
         //     },
         // ],
+    ] : [];
+
+    // const navigationGroups = [
+    //     [
+    //         { id: 1, name: "Таблица", icon: tableIcon, link: "/", type: "link" },
+    //         { id: 2, name: "Нагрузки", icon: subjectLoadIcon, link: "/disciplines", type: "link" },
+    //         { id: 3, name: "Взвода", icon: platoonIcon, link: "/platoons", type: "link" },
+    //         { id: 4, name: "Кафедры", icon: departmentsIcon, link: "/departments", type: "link" },
+    //     ],
+    //     [
+    //         { id: 5, name: "Офицеры", icon: officerIcon, link: "/teachers", type: "link" },
+    //         { id: 6, name: "Предметы", icon: subjectIcon, link: "/subjects", type: "link" },
+    //         { id: 7, name: "Аудитории", icon: audienceIcon, link: "/audience", type: "link" },
+    //     ],
+    //     // [
+    //     // { id: 8, name: "Настройки", icon: settingsIcon, link: "/settings", type: "link" },
+    //     // ],
+    // ];
+
+    const navigationGroups = [
+        [
+            { id: 1, name: "Таблица", icon: tableIcon, link: "/", type: "link" },
+            ...(isTeacher() ? [
+                { id: 2, name: "Нагрузки", icon: subjectLoadIcon, link: "/disciplines", type: "link" },
+                { id: 3, name: "Взвода", icon: platoonIcon, link: "/platoons", type: "link" },
+                { id: 4, name: "Кафедры", icon: departmentsIcon, link: "/departments", type: "link" },
+            ] : []),
+        ],
+        ...(isTeacher() ? [
+            [
+                { id: 5, name: "Офицеры", icon: officerIcon, link: "/teachers", type: "link" },
+                { id: 6, name: "Предметы", icon: subjectIcon, link: "/subjects", type: "link" },
+                { id: 7, name: "Аудитории", icon: audienceIcon, link: "/audience", type: "link" },
+            ],
+        ] : []),
     ];
+
 
     const handleNavigation = (e, item) => {
         if ((isEditing || isAdding) && hasChanges && location.pathname !== item.link) {
@@ -138,132 +159,119 @@ function Menu() {
 
     return (
         <div className="fixed left-4 top-[54%] transform -translate-y-72 z-50">
+            {actionGroups.length > 0 && (
+                <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
+                    <div className="flex flex-col space-y-6 py-1">
+                        {actionGroups[0].map((item) => {
+                            const isDisabled = isButtonDisabled(item.id);
+                            const isActive = (item.id === "edit" && isEditing) || (item.id === "add" && isAdding);
 
-            {/* Группа действий */}
-            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
-                <div className="flex flex-col space-y-6 py-1">
-                    {actionGroups[0].map((item) => {
-                        const isDisabled = isButtonDisabled(item.id);
-                        const isActive = (item.id === "edit" && isEditing) || (item.id === "add" && isAdding);
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={isDisabled ? undefined : item.action}
+                                    disabled={isDisabled}
+                                    className={`flex items-center justify-center w-8 h-8 rounded-md transition-all duration-200 group relative ${getButtonStyle(item.id)}`}
+                                    title={isDisabled
+                                        ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
+                                        : item.name
+                                    }
+                                >
+                                    <img
+                                        src={item.icon}
+                                        alt={item.name}
+                                        className={`w-6 h-6 ${isDisabled ? 'opacity-70' : ''}`}
+                                    />
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
-                        return (
-                            <button
+            {/* Первая группа навигации */}
+            {navigationGroups[0] && navigationGroups[0].length > 0 && (
+                <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
+                    <div className="flex flex-col space-y-6 py-1">
+                        {navigationGroups[0].map((item) => (
+                            <Link
                                 key={item.id}
-                                onClick={isDisabled ? undefined : item.action}
-                                disabled={isDisabled}
-                                className={`flex items-center justify-center w-8 h-8 rounded-md transition-all duration-200 group relative ${getButtonStyle(item.id)}`}
-                                title={isDisabled
+                                to={item.link}
+                                onClick={(e) => handleNavigation(e, item)}
+                                className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200 group relative
+                                    ${location.pathname === item.link
+                                        ? "opacity-100"
+                                        : isAnyModeActive
+                                            ? "opacity-70 cursor-not-allowed"
+                                            : "opacity-60 hover:opacity-100"
+                                    }`}
+                                title={isAnyModeActive && location.pathname !== item.link
                                     ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
                                     : item.name
                                 }
                             >
-                                <img
-                                    src={item.icon}
-                                    alt={item.name}
-                                    className={`w-6 h-6 ${isDisabled ? 'opacity-70' : ''}`}
-                                />
-                            </button>
-                        );
-                    })}
+                                <img src={item.icon} alt={item.name} className="w-6 h-6" />
+                            </Link>
+                        ))}
+                    </div>
                 </div>
-            </div>
-
-            {/* Первая группа навигации */}
-            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
-                <div className="flex flex-col space-y-6 py-1">
-                    {navigationGroups[0].map((item) => (
-                        <Link
-                            key={item.id}
-                            to={item.link}
-                            onClick={(e) => handleNavigation(e, item)}
-                            className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200 group relative
-                                ${location.pathname === item.link
-                                    ? "opacity-100"
-                                    : isAnyModeActive
-                                        ? "opacity-70 cursor-not-allowed"
-                                        : "opacity-60 hover:opacity-100"
-                                }`}
-                            title={isAnyModeActive && location.pathname !== item.link
-                                ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
-                                : item.name
-                            }
-                        >
-                            <img src={item.icon} alt={item.name} className="w-6 h-6" />
-                        </Link>
-                    ))}
-                </div>
-            </div>
+            )}
 
             {/* Вторая группа навигации */}
-            <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
-                <div className="flex flex-col space-y-6 py-1">
-                    {navigationGroups[1].map((item) => (
-                        <Link
-                            key={item.id}
-                            to={item.link}
-                            onClick={(e) => handleNavigation(e, item)}
-                            className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200 group relative
-                                ${location.pathname === item.link
-                                    ? "opacity-100"
-                                    : isAnyModeActive
-                                        ? "opacity-70 cursor-not-allowed"
-                                        : "opacity-60 hover:opacity-100"
-                                }`}
-                            title={isAnyModeActive && location.pathname !== item.link
-                                ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
-                                : item.name
-                            }
-                        >
-                            <img src={item.icon} alt={item.name} className="w-6 h-6" />
-                        </Link>
-                    ))}
+            {navigationGroups[1] && navigationGroups[1].length > 0 && (
+                <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
+                    <div className="flex flex-col space-y-6 py-1">
+                        {navigationGroups[1].map((item) => (
+                            <Link
+                                key={item.id}
+                                to={item.link}
+                                onClick={(e) => handleNavigation(e, item)}
+                                className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200 group relative
+                                    ${location.pathname === item.link
+                                        ? "opacity-100"
+                                        : isAnyModeActive
+                                            ? "opacity-70 cursor-not-allowed"
+                                            : "opacity-60 hover:opacity-100"
+                                    }`}
+                                title={isAnyModeActive && location.pathname !== item.link
+                                    ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
+                                    : item.name
+                                }
+                            >
+                                <img src={item.icon} alt={item.name} className="w-6 h-6" />
+                            </Link>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
 
-            {/* Третья группа навигации */}
-            {/* <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
-                <div className="flex flex-col space-y-6">
-                    <Link
-                        to={navigationGroups[2][0].link}
-                        onClick={(e) => handleNavigation(e, navigationGroups[2][0])}
-                        className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200 group relative
-                            ${location.pathname === navigationGroups[2][0].link
-                                ? "opacity-100"
-                                : isAnyModeActive
-                                    ? "opacity-70 cursor-not-allowed"
-                                    : "opacity-60 hover:opacity-100"
-                            }`}
-                        title={isAnyModeActive && location.pathname !== navigationGroups[2][0].link 
-                            ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
-                            : navigationGroups[2][0].name
-                        }
-                    >
-                        <img src={navigationGroups[2][0].icon} alt={navigationGroups[2][0].name} className="w-6 h-6" />
-                    </Link>
+            {/* Третья группа навигации (если есть) */}
+            {/* {navigationGroups[2] && navigationGroups[2].length > 0 && (
+                <div className={`bg-green-400 rounded-2xl p-2 shadow-lg mb-3 transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
+                    <div className="flex flex-col space-y-6">
+                        {navigationGroups[2].map((item) => (
+                            <Link
+                                key={item.id}
+                                to={item.link}
+                                onClick={(e) => handleNavigation(e, item)}
+                                className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors duration-200 group relative
+                                    ${location.pathname === item.link
+                                        ? "opacity-100"
+                                        : isAnyModeActive
+                                            ? "opacity-70 cursor-not-allowed"
+                                            : "opacity-60 hover:opacity-100"
+                                    }`}
+                                title={isAnyModeActive && location.pathname !== item.link
+                                    ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
+                                    : item.name
+                                }
+                            >
+                                <img src={item.icon} alt={item.name} className="w-6 h-6" />
+                            </Link>
+                        ))}
+                    </div>
                 </div>
-            </div> */}
-
-
-            {/* Экспорт в Excel (закомментирован) */}
-            {/* <div className={`bg-green-400 rounded-2xl p-2 shadow-lg transition-all duration-300 ease-in-out transform ${getContainerStyle()} hover:bg-opacity-100`}>
-                <div className="flex flex-col space-y-5">
-                    <button
-                        onClick={actionGroups[1][0].action}
-                        className={`flex items-center justify-center w-8 h-8 rounded-md transition-all duration-200 group relative 
-                            ${isAnyModeActive
-                                ? "opacity-70 cursor-not-allowed"
-                                : "opacity-80 hover:opacity-100"
-                            }`}
-                        disabled={isAnyModeActive}
-                        title={isAnyModeActive 
-                            ? `Сначала выйдите из режима ${isEditing ? "редактирования" : "добавления"}`
-                            : actionGroups[1][0].name
-                        }
-                    >
-                        <img src={actionGroups[1][0].icon} alt={actionGroups[1][0].name} className="w-6 h-6" />
-                    </button>
-                </div>
-            </div> */}
+            )} */}
         </div>
     );
 }

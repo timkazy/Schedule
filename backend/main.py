@@ -1,4 +1,6 @@
-from fastapi import FastAPI, HTTPException, Query, Depends
+# backend/main.py
+
+from fastapi import FastAPI, HTTPException, Query, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text 
@@ -10,11 +12,16 @@ import traceback
 from repository import crud, schemas, models, database
 from repository.database import get_db, create_tables
 from repository.initializer import init_database
+from repository.scheduling import generate_and_save_schedule, WeekScheduler
+
+from repository import auth, crud, schemas
+from repository.database import get_db
+from repository.auth import get_current_user, get_current_teacher, get_current_student
 
 # Включите логирование SQL запросов
 import logging
 logging.basicConfig()
-logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 import calendar
 from repository.schedule_generator import (
@@ -29,7 +36,7 @@ app = FastAPI(title="Schedule API", version="1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:8000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,6 +59,52 @@ def convert_date_format(date_str: str) -> str:
         return f"{year}-{int(month):02d}-{int(day):02d}"
     except:
         return date_str
+
+# Эндпоинты аутентификации
+@app.post("/auth/login", response_model=schemas.Token)
+def login(user_data: schemas.UserLogin, db: Session = Depends(get_db)):
+    """Вход в систему"""
+    print("1")
+
+    user = crud.authenticate_user(db, user_data.username, user_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверное имя пользователя или пароль"
+        )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Пользователь не активен"
+        )
+    
+    # Создаем токен
+    access_token_expires = timedelta(minutes=crud.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = crud.create_access_token(
+        data={"sub": user.username},
+        expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": user.role.name,
+        "user_id": user.id,
+        "username": user.username,
+        "first_name": user.first_name,
+        "last_name": user.last_name
+    }
+
+@app.post("/auth/logout")
+def logout():
+    """Выход из системы (на клиенте просто удаляем токен)"""
+    return {"message": "Успешный выход из системы"}
+
+@app.get("/auth/me", response_model=schemas.UserInDB)
+def get_current_user_info(current_user = Depends(get_current_user)):
+    """Получить информацию о текущем пользователе"""
+    return current_user
 
 # ---------------------------------------------------------------------------
 # 🔹 GET /subjects
@@ -167,7 +220,9 @@ def save_cell(data: dict, db: Session = Depends(get_db)):
 @app.get("/health")
 def health_check(db: Session = Depends(get_db)):
     try:
-        db.execute("SELECT 1")
+        # Используйте text() для SQL выражений
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
@@ -391,12 +446,12 @@ def update_platoon(platoon_number: str, data: dict, db: Session = Depends(get_db
             if can_shift:
                 # Можем просто сдвинуть занятия
                 week_shift = new_start_week - old_start_week
-                print(f"↕️ Сдвигаем занятия на {week_shift} недель")
+                print(f"Сдвигаем занятия на {week_shift} недель")
                 shift_squad_lessons(db, platoon_number, week_shift)
                 
                 # Если end_week изменился, добавляем или удаляем занятия
                 if end_week_changed:
-                    print("🔧 Корректируем занятия из-за изменения end_week")
+                    print("Корректируем занятия из-за изменения end_week")
                     
                     # Получаем текущие даты после сдвига
                     result = db.execute(text("""
@@ -444,7 +499,7 @@ def update_platoon(platoon_number: str, data: dict, db: Session = Depends(get_db
                         """), {"squad": platoon_number, **{f"p{i}": date for i, date in enumerate(dates_to_remove)}})
                         print(f"🗑️ Удалено занятий в {len(dates_to_remove)} дней")
                     
-                    print(f"➕ Добавлено занятий в {len(dates_to_add)} дней")
+                    print(f"Добавлено занятий в {len(dates_to_add)} дней")
                     
             else:
                 # Нельзя сдвинуть - пересоздаем полностью
@@ -1679,6 +1734,19 @@ def update_hour_load_audiences_api(
         print(f"❌ Ошибка обновления аудиторий: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка обновления аудиторий: {str(e)}")
 
+# Holidays
+@app.get("/settings/get_holidays")
+def get_all_holidays(db: Session = Depends(get_db)):
+    return crud.get_all_holidays(db)
+
+@app.post("/settings/save_holiday")
+def save_holiday(day: dict, db: Session = Depends(get_db)):
+    return crud.save_holiday(db, day)
+
+@app.delete("/settings/delete_holiday")
+def delete_holiday(day: dict, db: Session = Depends(get_db)):
+    return crud.delete_holiday(db, day)
+
 # ------------------------ TEACHERS ------------------------
 @app.get("/teachers", response_model=List[schemas.Officer])
 def get_teachers_api(db: Session = Depends(get_db)):
@@ -2092,7 +2160,7 @@ def get_subject_details_api(subject_id: int, db: Session = Depends(get_db)):
 def add_subject_api(data: dict, db: Session = Depends(get_db)):
     """Добавить новый предмет"""
     try:
-        print(f"➕ Добавление нового предмета: {data}")
+        print(f"Добавление нового предмета: {data}")
         
         name = data.get("name", "").strip()
         
@@ -2518,6 +2586,45 @@ def delete_department_api(department_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         print(f"❌ Ошибка удаления кафедры: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка удаления кафедры: {str(e)}")
+
+@app.post("/schedule/generate")
+def generate_schedule_api(
+    day: Optional[int] = Query(None),
+    strategy: str = Query("upsert", regex="^(upsert|replace|update)$"),
+    academic_year: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_teacher)
+):
+    """Запустить генерацию расписания"""
+    try:
+        print(f"👤 Пользователь {current_user.username} запускает генерацию")
+        # Определяем дату начала учебного года
+        academic_year_start = None
+        if academic_year:
+            academic_year_start = datetime(academic_year, 9, 1)
+        
+        # Вызываем функцию генерации
+        result = generate_and_save_schedule(
+            db_session=db,
+            day=day,
+            strategy=strategy,
+            academic_year_start=academic_year_start
+        )
+        
+        if result.get("success", False):
+            return {
+                "success": True,
+                "message": "Расписание успешно сгенерировано и сохранено",
+                "details": result
+            }
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Ошибка: {result.get('error', 'Неизвестная ошибка')}"
+            )
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка: {str(e)}")
 
 # Запуск сервера
 if __name__ == "__main__":

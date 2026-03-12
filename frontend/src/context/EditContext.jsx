@@ -1,14 +1,24 @@
 import { createContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useContext } from "react";
 import { tablesData } from "../data/tablesData";
 import { scheduleApi } from "../api/api";
 import { localDropdownData } from "../data/localDropdownData";
 import { appConfig, isLocalMode } from "../config/appConfig";
+
+import { AuthContext } from "./AuthContext"
 
 export const EditContext = createContext();
 
 export const EditProvider = ({ children }) => {
   const [scheduleData, setScheduleData] = useState([]);
   const [dataSource, setDataSource] = useState(appConfig.dataSource); // состояние режима
+
+  const { isTeacher } = useContext(AuthContext); // Получаем из AuthContext
+
+  const [selectedDay, setSelectedDay] = useState(0); 
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationMessage, setGenerationMessage] = useState(null);
 
   const [dropdownData, setDropdownData] = useState({
     subjects: [],
@@ -62,6 +72,30 @@ export const EditProvider = ({ children }) => {
   useEffect(() => {
     fetchSchedule();
   }, [fetchSchedule]);
+
+  const getFilteredScheduleData = useMemo(() => {
+    if (selectedDay === 0) {
+      // "Все дни" - возвращаем все данные
+      return scheduleData;
+    }
+    
+    // Фильтруем данные по dayId
+    return scheduleData.filter(day => {
+      // dayId в данных соответствует id дней в DaySelector (1-6)
+      return day.dayId === selectedDay;
+    });
+  }, [scheduleData, selectedDay]);
+
+const handleDayChange = useCallback((dayId) => {
+    if (isEditing && dayId !== selectedDay) {
+      // В режиме редактирования запрещаем менять день
+      console.log("⚠️ В режиме редактирования нельзя менять день");
+      return;
+    }
+    setSelectedDay(dayId);
+  }, [isEditing, selectedDay]);
+
+
 
   const loadData = useCallback(async (loaderType, params = {}) => {
     const { platoon_id, subject_load_id, lesson_type } = params;
@@ -530,9 +564,59 @@ export const EditProvider = ({ children }) => {
           setIsEditing(false);
           setHasChanges(false);
           break;
+
+        case "magic":
+          if (!isTeacher) {
+            console.warn("❌ Только преподаватели могут генерировать расписание");
+            setGenerationMessage({
+              type: 'error',
+              text: 'Только преподаватели могут генерировать расписание'
+            });
+            return;
+          }
+          
+          const generateSchedule = async () => {
+            setIsGenerating(true);
+            setGenerationMessage(null);
+            
+            console.log("1")
+            try {
+              console.log(`🎯 Генерация расписания для дня: ${selectedDay}`);
+              
+              const result = await scheduleApi.generateSchedule(selectedDay === 0 ? null : selectedDay);
+              
+              if (result.success) {
+                setGenerationMessage({
+                  type: 'success',
+                  text: result.message || 'Расписание успешно сгенерировано'
+                });
+                
+                setTimeout(() => {
+                  fetchSchedule();
+                }, 500);
+                
+                console.log('Расписание успешно сгенерировано:', result);
+              } else {
+                throw new Error(result.message || 'Неизвестная ошибка генерации');
+              }
+              
+            } catch (error) {
+              console.error('Ошибка генерации расписания:', error);
+              setGenerationMessage({
+                type: 'error',
+                text: `Ошибка: ${error.message}`
+              });
+            } finally {
+              setIsGenerating(false);
+            }
+          };
+          
+          generateSchedule();
+          break;
+
       }
     },
-    [selectedCells, copiedCell, selectedCount, getCellValue, updateCellValue, activeTableId]
+    [selectedCells, copiedCell, selectedCount, getCellValue, updateCellValue, activeTableId, selectedDay, fetchSchedule, isTeacher]
   );
 
   handleActionRef.current = handleAction;
@@ -573,13 +657,21 @@ export const EditProvider = ({ children }) => {
         // Действия
         handleAction,
 
+        // Cостояние генерации
+        isGenerating,
+        generationMessage,
+        setGenerationMessage,
+
         // Данные для dropdown
         dropdownData,
         fetchFieldData,
         getSelectedCellParams,
 
-        // 👇 НОВОЕ: управление режимом данных
         dataSource,
+
+        filteredScheduleData: getFilteredScheduleData,
+        selectedDay,
+        setSelectedDay: handleDayChange,
       }}
     >
       {children}

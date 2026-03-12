@@ -9,3 +9,10 @@ venv/
 backend/databases/*
 ./*.xlsx
 ./*.xls
+backend/repository/date_utils.py
+backend/repository/scheduler_db.py
+backend/repository/schedule_output_db.js
+backend/repository/db_data_extractor.py
+backend/database testing integrate/
+backend/tests/__pycache__/
+backup/

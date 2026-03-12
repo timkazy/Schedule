@@ -9,11 +9,6 @@ class LessonType(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
 
-class Holiday(Base):
-    __tablename__ = "holidays"
-    
-    day = Column(String, primary_key=True)
-
 class StartEndDate(Base):
     __tablename__ = "start_end_dates"
     
@@ -31,6 +26,11 @@ class Department(Base):
     # Relationships
     squads = relationship("Squad", back_populates="department")
     subject_loads = relationship("SubjectLoad", back_populates="department")
+
+class Holiday(Base):
+    __tablename__ = "holidays"
+
+    day = Column(String, primary_key=True)
 
 class Audience(Base):
     __tablename__ = "audiences"
@@ -168,3 +168,30 @@ class Lesson(Base):
     officer = relationship("Officer", back_populates="lessons")
     subject_load = relationship("SubjectLoad", back_populates="lessons")
     audience_rel = relationship("Audience", back_populates="lessons")
+
+
+class Role(Base):
+    __tablename__ = "roles"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), unique=True, nullable=False, index=True)
+    description = Column(String(255))
+    
+    # Relationships
+    users = relationship("User", back_populates="role")
+
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, index=True)
+    password_hash = Column(String(255), nullable=False)
+    first_name = Column(String(100))
+    last_name = Column(String(100))
+    middle_name = Column(String(100))
+    is_active = Column(Boolean, default=True)
+    role_id = Column(Integer, ForeignKey("roles.id"))
+    
+    # Relationships
+    role = relationship("Role", back_populates="users")

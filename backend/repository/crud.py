@@ -1,9 +1,123 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func, text
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 from . import models, schemas
 from .database import string_to_list, list_to_string
+from passlib.context import CryptContext
+import jwt
+from fastapi import HTTPException, status
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+SECRET_KEY = "secret-key-here"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 часа
+
+def get_user_by_username(db: Session, username: str):
+    return db.query(models.User).filter(models.User.username == username).first()
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(models.User).filter(models.User.email == email).first()
+
+def create_user(db: Session, user: schemas.UserCreate):
+    # Проверяем существование пользователя
+    db_user = get_user_by_username(db, username=user.username)
+    if db_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Пользователь с таким логином уже существует"
+        )
+    
+    if user.email:
+        db_email = get_user_by_email(db, email=user.email)
+        if db_email:
+            raise HTTPException(
+                status_code=400,
+                detail="Пользователь с таким email уже существует"
+            )
+    
+    # Хэшируем пароль
+    hashed_password = pwd_context.hash(user.password)
+    
+    # Создаем пользователя
+    db_user = models.User(
+        username=user.username,
+        email=user.email,
+        password_hash=hashed_password,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        middle_name=user.middle_name,
+        role_id=user.role_id,
+        is_active=True
+    )
+    
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def verify_password(plain_password: str, hashed_password: str):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def authenticate_user(db: Session, username: str, password: str):
+    user = get_user_by_username(db, username)
+    if not user:
+        return None
+    if not pwd_context.verify(password, user.password_hash):
+        return None
+    return user
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def get_current_user(token: str, db: Session):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Не удалось подтвердить учетные данные",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = schemas.TokenData(username=username)
+    except jwt.PyJWTError:
+        raise credentials_exception
+    
+    user = get_user_by_username(db, username=token_data.username)
+    if user is None:
+        raise credentials_exception
+    return user
+
+def get_role_by_name(db: Session, role_name: str):
+    return db.query(models.Role).filter(models.Role.name == role_name).first()
+
+def get_all_roles(db: Session):
+    return db.query(models.Role).order_by(models.Role.name).all()
+
+def initialize_roles(db: Session):
+    """Инициализация ролей при первом запуске"""
+    roles = [
+        {"name": "student", "description": "Студент/Курсант - просмотр расписания"},
+        {"name": "teacher", "description": "Преподаватель - полный доступ к редактированию"}
+    ]
+    
+    for role_data in roles:
+        existing_role = get_role_by_name(db, role_data["name"])
+        if not existing_role:
+            role = models.Role(**role_data)
+            db.add(role)
+    
+    db.commit()
+
 
 # Универсальные CRUD операции
 def get_all(model, db: Session, skip: int = 0, limit: int = 100):
@@ -156,23 +270,28 @@ def get_schedule(db: Session):
     ).distinct().order_by(models.Squad.day, models.Squad.number).all()
     
     result = []
-    day_counter = 1
-    current_day = None
-    day_platoons = []
+    processed_days = set()
     
     for squad in squads:
         platoon_id = squad.platoonId
-        day_name = squad.day
+        day_value = squad.day
         
-        if day_name != current_day:
-            if current_day is not None:
-                result.append({
-                    "dayId": day_counter,
-                    "platoons": day_platoons.copy()
-                })
-                day_counter += 1
-                day_platoons = []
-            current_day = day_name
+        # Проверяем, есть ли уже день в результате
+        day_exists = False
+        for day_data in result:
+            if day_data["dayId"] == day_value:
+                day_exists = True
+                day_platoons = day_data["platoons"]
+                break
+        
+        # Если день еще не добавлен, создаем новую запись
+        if not day_exists:
+            result.append({
+                "dayId": day_value,  # Используем непосредственно day как dayId
+                "platoons": []
+            })
+            day_platoons = result[-1]["platoons"]
+            processed_days.add(day_value)
         
         # INFO: предметы и аудитории - используем сырые запросы
         info_rows = db.execute(text("""
@@ -269,16 +388,42 @@ def get_schedule(db: Session):
             "columns": list(columns_map.values())
         }
         
-        day_platoons.append(platoon_obj)
+        # Добавляем взвод к соответствующему дню
+        for day_data in result:
+            if day_data["dayId"] == day_value:
+                day_data["platoons"].append(platoon_obj)
+                break
     
-    # Добавляем последний день
-    if day_platoons:
-        result.append({
-            "dayId": day_counter,
-            "platoons": day_platoons
-        })
+    # Сортируем результат по dayId
+    result.sort(key=lambda x: x["dayId"])
     
     return result
+
+def get_all_holidays(db:Session):
+    return db.query(models.Holiday).all()
+
+def save_holiday(db: Session, data: dict):
+    try:
+        day = data.get("day")
+        new_day = models.Holiday(day = day)
+        db.add(new_day) # Аналог db.query().all().insert(new_day)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        return None
+    return new_day
+
+def delete_holiday(db: Session, data: dict):
+    try:
+        day = data.get("day")
+        deleted = db.query(models.Holiday).filter(models.Holiday.day == day).delete()
+        db.commit()
+        return deleted
+    
+    except Exception as e:
+        db.rollback()
+        return None
+
 
 def save_cell_data(db: Session, data: dict):
     """Обновить данные ячейки расписания"""
@@ -776,3 +921,25 @@ def get_teacher_details(db: Session, teacher_id: int):
     }
     
     return result
+
+def create_lesson(db: Session, data: dict):
+    """Создать занятие"""
+    lesson = models.Lesson(**data)
+    db.add(lesson)
+    db.commit()
+    db.refresh(lesson)
+    return lesson
+
+def update_lesson_full(db: Session, lesson_id: int, data: dict):
+    """Обновить все поля занятия"""
+    lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
+    if not lesson:
+        return None
+    
+    for key, value in data.items():
+        if value is not None:
+            setattr(lesson, key, value)
+    
+    db.commit()
+    db.refresh(lesson)
+    return lesson
